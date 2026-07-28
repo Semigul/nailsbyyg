@@ -14,6 +14,7 @@ En mobilvänlig admin- och kundapp för beställningar hos Nailsbyy.g.
 - Realtidssynk med Firebase Firestore
 - Skyddad admininloggning
 - PostNord-frakt baserad på vikt
+- Automatisk bildmoderering (pending/approved/rejected)
 
 ## Starta lokalt
 
@@ -43,6 +44,25 @@ Firebase är aktiverat i appens kod. Följ dessa steg i Firebase Console:
 7. Öppna Firestore → Rules, ersätt innehållet med `firestore.rules` och klicka Publish.
 8. Öppna Storage → Rules, ersätt innehållet med `storage.rules` och klicka Publish.
 9. Lägg till `localhost` och den publicerade domänen under Authentication → Settings → Authorized domains.
+
+### Automatisk moderering av uppladdade bilder
+
+Kunduppladdade designbilder går via moderering:
+
+- `pending`: bilder granskas
+- `approved`: godkända bilder visas i admin
+- `rejected`: bilder blockeras och visas inte i admin
+
+Deploy av modereringsfunktion:
+
+```bash
+cd "/Users/madeleine/Documents/GitHub/NailsbyG "
+cd functions
+npm install
+npm run deploy
+```
+
+Mer detaljer finns i `functions/README.md`.
 
 Kunder autentiseras anonymt och får endast skapa validerade orderdokument. Endast användare som har ett dokument i `admins` får läsa, ändra eller radera ordrar.
 

@@ -291,7 +291,13 @@ async function onSaveOrder(event) {
     deliveryMethod: asString(formData.get("deliveryMethod")),
     status: asString(formData.get("status")),
     notes: asString(formData.get("notes")),
-    designImageUrls: Array.isArray(existingOrder?.designImageUrls) ? existingOrder.designImageUrls : [],
+    designImagePaths: Array.isArray(existingOrder?.designImagePaths) ? existingOrder.designImagePaths : [],
+    approvedDesignImageUrls: Array.isArray(existingOrder?.approvedDesignImageUrls)
+      ? existingOrder.approvedDesignImageUrls
+      : [],
+    moderationStatus: asString(existingOrder?.moderationStatus) || "approved",
+    moderationReason: asString(existingOrder?.moderationReason),
+    moderationUpdatedAt: Number(existingOrder?.moderationUpdatedAt) || now,
     source: existingOrder?.source || "admin",
     customerId: existingOrder?.customerId || null,
     createdAt: existingOrder?.createdAt || now,
@@ -541,10 +547,17 @@ function createOrderCard(order, isDraggable = false) {
     notes.remove();
   }
 
-  const designImageUrls = Array.isArray(order.designImageUrls) ? order.designImageUrls : [];
+  const moderationStatus = asString(order.moderationStatus) || "approved";
+  const legacyDesignImageUrls = Array.isArray(order.designImageUrls) ? order.designImageUrls : [];
+  const approvedDesignImageUrls = Array.isArray(order.approvedDesignImageUrls)
+    ? order.approvedDesignImageUrls
+    : [];
+  const visibleImageUrls = approvedDesignImageUrls.length > 0
+    ? approvedDesignImageUrls
+    : (moderationStatus === "approved" ? legacyDesignImageUrls : []);
 
-  if (designImageUrls.length > 0) {
-    designImageUrls.forEach((url, index) => {
+  if (visibleImageUrls.length > 0) {
+    visibleImageUrls.forEach((url, index) => {
       const link = document.createElement("a");
       const image = document.createElement("img");
 
@@ -564,6 +577,20 @@ function createOrderCard(order, isDraggable = false) {
     });
   } else {
     orderImages.remove();
+  }
+
+  if (moderationStatus !== "approved") {
+    const moderationNote = document.createElement("p");
+    moderationNote.className = `order-moderation-note status-${moderationStatus}`;
+
+    if (moderationStatus === "pending") {
+      moderationNote.textContent = "Bilder granskas automatiskt innan de visas.";
+    } else {
+      const reason = asString(order.moderationReason) || "Bildinnehåll godkändes inte.";
+      moderationNote.textContent = `Bilder blockerade: ${reason}`;
+    }
+
+    card.insertBefore(moderationNote, card.querySelector(".item-actions"));
   }
 
   return fragment;
@@ -762,7 +789,13 @@ function normalizeLegacyOrder(order) {
     deliveryMethod: asString(order.deliveryMethod) || "Postas",
     status: STATUS_FLOW.includes(order.status) ? order.status : "Ny",
     notes: asString(order.notes),
-    designImageUrls: Array.isArray(order.designImageUrls) ? order.designImageUrls : [],
+    designImagePaths: Array.isArray(order.designImagePaths) ? order.designImagePaths : [],
+    approvedDesignImageUrls: Array.isArray(order.approvedDesignImageUrls)
+      ? order.approvedDesignImageUrls
+      : (Array.isArray(order.designImageUrls) ? order.designImageUrls : []),
+    moderationStatus: asString(order.moderationStatus) || "approved",
+    moderationReason: asString(order.moderationReason),
+    moderationUpdatedAt: Number(order.moderationUpdatedAt) || now,
     source: asString(order.source) || "legacy",
     customerId: order.customerId || null,
     createdAt: Number(order.createdAt) || Number(order.updatedAt) || now,

@@ -31,7 +31,11 @@ service cloud.firestore {
           "weight",
           "shippingCost",
           "status",
-          "designImageUrls",
+          "designImagePaths",
+          "approvedDesignImageUrls",
+          "moderationStatus",
+          "moderationReason",
+          "moderationUpdatedAt",
           "source",
           "customerId",
           "createdAt",
@@ -59,8 +63,17 @@ service cloud.firestore {
         && request.resource.data.dueDate is string
         && request.resource.data.notes is string
         && request.resource.data.notes.size() <= 500
-        && request.resource.data.designImageUrls is list
-        && request.resource.data.designImageUrls.size() <= 4
+        && request.resource.data.designImagePaths is list
+        && request.resource.data.designImagePaths.size() <= 4
+        && request.resource.data.approvedDesignImageUrls is list
+        && request.resource.data.approvedDesignImageUrls.size() == 0
+        && (
+          (request.resource.data.designImagePaths.size() == 0 && request.resource.data.moderationStatus == "approved")
+          || (request.resource.data.designImagePaths.size() > 0 && request.resource.data.moderationStatus == "pending")
+        )
+        && request.resource.data.moderationReason is string
+        && request.resource.data.moderationReason.size() <= 160
+        && request.resource.data.moderationUpdatedAt is int
         && request.resource.data.price == 0
         && request.resource.data.weight == 0
         && request.resource.data.shippingCost == 0

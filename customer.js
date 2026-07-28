@@ -83,6 +83,11 @@ async function onSubmitOrder(event) {
     weight: 0,
     shippingCost: 0,
     status: "Ny",
+    designImagePaths: [],
+    approvedDesignImageUrls: [],
+    moderationStatus: "approved",
+    moderationReason: "",
+    moderationUpdatedAt: now,
     source: "customer",
     customerId: customerUser.uid,
     createdAt: now,
@@ -95,10 +100,11 @@ async function onSubmitOrder(event) {
 
   try {
     const reference = firebase.firestoreApi.doc(firebase.firestoreApi.collection(firebase.db, "orders"));
-    const designImageUrls = await uploadDesignImages(reference.id, imageValidation.files);
+    const designImagePaths = await uploadDesignImages(reference.id, imageValidation.files);
     const order = {
       ...orderDraft,
-      designImageUrls
+      designImagePaths,
+      moderationStatus: designImagePaths.length > 0 ? "pending" : "approved"
     };
 
     await firebase.firestoreApi.setDoc(reference, order);
@@ -283,7 +289,7 @@ async function uploadDesignImages(orderId, files) {
       contentType: file.type || "application/octet-stream"
     });
 
-    return firebase.storageApi.getDownloadURL(imageRef);
+    return filePath;
   });
 
   return Promise.all(uploads);
