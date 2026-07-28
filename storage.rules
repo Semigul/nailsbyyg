@@ -1,0 +1,28 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && firestore.get(/databases/(default)/documents/admins/$(request.auth.uid)).data.role == "admin";
+    }
+
+    match /order-designs/{customerId}/{orderId}/{fileName} {
+      allow write: if isSignedIn()
+        && request.auth.uid == customerId
+        && request.resource != null
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+
+      allow read: if isSignedIn() && (request.auth.uid == customerId || isAdmin());
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

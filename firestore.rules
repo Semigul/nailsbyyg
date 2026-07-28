@@ -31,6 +31,7 @@ service cloud.firestore {
           "weight",
           "shippingCost",
           "status",
+          "designImageUrls",
           "source",
           "customerId",
           "createdAt",
@@ -58,6 +59,8 @@ service cloud.firestore {
         && request.resource.data.dueDate is string
         && request.resource.data.notes is string
         && request.resource.data.notes.size() <= 500
+        && request.resource.data.designImageUrls is list
+        && request.resource.data.designImageUrls.size() <= 4
         && request.resource.data.price == 0
         && request.resource.data.weight == 0
         && request.resource.data.shippingCost == 0

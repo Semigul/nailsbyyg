@@ -10,6 +10,7 @@ En mobilvänlig admin- och kundapp för beställningar hos Nailsbyy.g.
 - Filter per status
 - Kanban-board och listvy
 - Kundsida för nya beställningar
+- Kundsida med bilduppladdning för önskad design
 - Realtidssynk med Firebase Firestore
 - Skyddad admininloggning
 - PostNord-frakt baserad på vikt
@@ -38,8 +39,10 @@ Firebase är aktiverat i appens kod. Följ dessa steg i Firebase Console:
 3. Skapa adminanvändaren under Authentication → Users.
 4. Skapa collectionen `admins`. Dokumentets ID ska vara adminanvändarens UID och innehålla `role: "admin"`.
 5. Kopiera `firebase.config.sample.js` till `firebase.config.js` och fyll i webbkonfigurationen.
-6. Öppna Firestore → Rules, ersätt innehållet med `firestore.rules` och klicka Publish.
-7. Lägg till `localhost` och den publicerade domänen under Authentication → Settings → Authorized domains.
+6. Aktivera Firebase Storage (blaze/spark enligt projektbehov).
+7. Öppna Firestore → Rules, ersätt innehållet med `firestore.rules` och klicka Publish.
+8. Öppna Storage → Rules, ersätt innehållet med `storage.rules` och klicka Publish.
+9. Lägg till `localhost` och den publicerade domänen under Authentication → Settings → Authorized domains.
 
 Kunder autentiseras anonymt och får endast skapa validerade orderdokument. Endast användare som har ett dokument i `admins` får läsa, ändra eller radera ordrar.
 

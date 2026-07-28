@@ -708,6 +708,28 @@ textarea {
   background: var(--surface-blush);
 }
 
+.order-images {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(4.2rem, 1fr));
+  gap: 0.45rem;
+  margin: 0.55rem 0;
+}
+
+.order-image-link {
+  display: block;
+  border-radius: 0.7rem;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: #fff;
+}
+
+.order-image-thumb {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+}
+
 .item-actions {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -869,6 +891,34 @@ textarea {
   color: var(--muted);
   font-size: 0.78rem;
   line-height: 1.5;
+}
+
+.customer-upload-group {
+  margin-top: 0.8rem;
+}
+
+.upload-help {
+  margin: 0.45rem 0 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.customer-image-preview {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(4.5rem, 1fr));
+  gap: 0.45rem;
+  margin-top: 0.55rem;
+}
+
+.customer-preview-thumb {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border: 1px solid var(--line);
+  border-radius: 0.7rem;
+  object-fit: cover;
+  background: #fff;
 }
 
 .customer-submit {

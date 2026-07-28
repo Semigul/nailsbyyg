@@ -291,6 +291,7 @@ async function onSaveOrder(event) {
     deliveryMethod: asString(formData.get("deliveryMethod")),
     status: asString(formData.get("status")),
     notes: asString(formData.get("notes")),
+    designImageUrls: Array.isArray(existingOrder?.designImageUrls) ? existingOrder.designImageUrls : [],
     source: existingOrder?.source || "admin",
     customerId: existingOrder?.customerId || null,
     createdAt: existingOrder?.createdAt || now,
@@ -489,6 +490,7 @@ function createOrderCard(order, isDraggable = false) {
   const address = fragment.querySelector(".order-address");
   const meta = fragment.querySelector(".order-meta");
   const notes = fragment.querySelector(".order-notes");
+  const orderImages = fragment.querySelector(".order-images");
   const nextButton = fragment.querySelector('[data-action="next"]');
 
   card.dataset.orderId = order.id;
@@ -537,6 +539,31 @@ function createOrderCard(order, isDraggable = false) {
     notes.textContent = order.notes;
   } else {
     notes.remove();
+  }
+
+  const designImageUrls = Array.isArray(order.designImageUrls) ? order.designImageUrls : [];
+
+  if (designImageUrls.length > 0) {
+    designImageUrls.forEach((url, index) => {
+      const link = document.createElement("a");
+      const image = document.createElement("img");
+
+      link.className = "order-image-link";
+      link.href = url;
+      link.target = "_blank";
+      link.rel = "noreferrer noopener";
+      link.setAttribute("aria-label", `Öppna designbild ${index + 1}`);
+
+      image.className = "order-image-thumb";
+      image.src = url;
+      image.alt = `Designbild ${index + 1} för ${order.customer}`;
+      image.loading = "lazy";
+
+      link.append(image);
+      orderImages.append(link);
+    });
+  } else {
+    orderImages.remove();
   }
 
   return fragment;
@@ -735,6 +762,7 @@ function normalizeLegacyOrder(order) {
     deliveryMethod: asString(order.deliveryMethod) || "Postas",
     status: STATUS_FLOW.includes(order.status) ? order.status : "Ny",
     notes: asString(order.notes),
+    designImageUrls: Array.isArray(order.designImageUrls) ? order.designImageUrls : [],
     source: asString(order.source) || "legacy",
     customerId: order.customerId || null,
     createdAt: Number(order.createdAt) || Number(order.updatedAt) || now,

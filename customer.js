@@ -1,5 +1,8 @@
 import { getFirebaseServices } from "./firebase-client.mjs";
 
+const MAX_UPLOAD_IMAGES = 4;
+const MAX_FILE_BYTES = 5 * 1024 * 1024;
+
 const ui = {
   form: document.getElementById("customerOrderForm"),
   connectionStatus: document.getElementById("customerConnectionStatus"),
@@ -10,11 +13,14 @@ const ui = {
   deliveryMethod: document.getElementById("customerDelivery"),
   addressGroup: document.getElementById("customerAddressGroup"),
   address: document.getElementById("customerAddress"),
-  dueDate: document.getElementById("customerDueDate")
+  dueDate: document.getElementById("customerDueDate"),
+  designImages: document.getElementById("customerDesignImages"),
+  imagePreview: document.getElementById("customerImagePreview")
 };
 
 let firebase;
 let customerUser;
+let previewUrls = [];
 
 init();
 
@@ -23,6 +29,7 @@ async function init() {
   ui.form.addEventListener("submit", onSubmitOrder);
   ui.newOrderButton.addEventListener("click", resetCustomerForm);
   ui.deliveryMethod.addEventListener("change", updateAddressRequirement);
+  ui.designImages.addEventListener("change", onDesignImagesChange);
   updateAddressRequirement();
 
   try {
@@ -53,8 +60,15 @@ async function onSubmitOrder(event) {
 
   const submitButton = ui.form.querySelector('button[type="submit"]');
   const formData = new FormData(ui.form);
+  const imageValidation = validateImageSelection(ui.designImages.files);
+
+  if (!imageValidation.ok) {
+    ui.formMessage.textContent = imageValidation.message;
+    return;
+  }
+
   const now = Date.now();
-  const order = {
+  const orderDraft = {
     customer: clean(formData.get("customer")),
     contact: clean(formData.get("contact")),
     product: clean(formData.get("product")),
@@ -78,10 +92,14 @@ async function onSubmitOrder(event) {
   ui.formMessage.textContent = "";
 
   try {
-    const reference = await firebase.firestoreApi.addDoc(
-      firebase.firestoreApi.collection(firebase.db, "orders"),
-      order
-    );
+    const reference = firebase.firestoreApi.doc(firebase.firestoreApi.collection(firebase.db, "orders"));
+    const designImageUrls = await uploadDesignImages(reference.id, imageValidation.files);
+    const order = {
+      ...orderDraft,
+      designImageUrls
+    };
+
+    await firebase.firestoreApi.setDoc(reference, order);
 
     ui.orderReference.textContent = `Referens: ${reference.id.slice(0, 8).toUpperCase()}`;
     ui.form.hidden = true;
@@ -97,6 +115,9 @@ async function onSubmitOrder(event) {
 }
 
 function resetCustomerForm() {
+  clearPreviewUrls();
+  ui.imagePreview.innerHTML = "";
+  ui.imagePreview.hidden = true;
   ui.form.reset();
   setMinimumDate();
   updateAddressRequirement();
@@ -122,6 +143,132 @@ function setMinimumDate() {
   const value = date.toISOString().slice(0, 10);
   ui.dueDate.min = value;
   ui.dueDate.value = value;
+}
+
+function onDesignImagesChange() {
+  const validation = validateImageSelection(ui.designImages.files);
+
+  if (!validation.ok) {
+    ui.formMessage.textContent = validation.message;
+    ui.designImages.value = "";
+    clearPreviewUrls();
+    ui.imagePreview.innerHTML = "";
+    ui.imagePreview.hidden = true;
+    return;
+  }
+
+  ui.formMessage.textContent = "";
+  renderImagePreview(validation.files);
+}
+
+function validateImageSelection(fileList) {
+  const files = Array.from(fileList || []);
+
+  if (files.length > MAX_UPLOAD_IMAGES) {
+    return {
+      ok: false,
+      files: [],
+      message: `Välj högst ${MAX_UPLOAD_IMAGES} bilder.`
+    };
+  }
+
+  for (const file of files) {
+    if (!file.type.startsWith("image/")) {
+      return {
+        ok: false,
+        files: [],
+        message: "Alla uppladdade filer måste vara bilder."
+      };
+    }
+
+    if (file.size > MAX_FILE_BYTES) {
+      return {
+        ok: false,
+        files: [],
+        message: "En eller flera bilder är större än 5 MB."
+      };
+    }
+  }
+
+  return {
+    ok: true,
+    files,
+    message: ""
+  };
+}
+
+function renderImagePreview(files) {
+  clearPreviewUrls();
+  ui.imagePreview.innerHTML = "";
+
+  if (files.length === 0) {
+    ui.imagePreview.hidden = true;
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+
+  files.forEach((file) => {
+    const objectUrl = URL.createObjectURL(file);
+    previewUrls.push(objectUrl);
+
+    const img = document.createElement("img");
+    img.className = "customer-preview-thumb";
+    img.src = objectUrl;
+    img.alt = `Förhandsvisning: ${file.name}`;
+    fragment.append(img);
+  });
+
+  ui.imagePreview.append(fragment);
+  ui.imagePreview.hidden = false;
+}
+
+async function uploadDesignImages(orderId, files) {
+  if (files.length === 0) {
+    return [];
+  }
+
+  if (!firebase?.storage || !firebase?.storageApi) {
+    throw new Error("Firebase Storage är inte tillgängligt.");
+  }
+
+  const uploads = files.map(async (file, index) => {
+    const extension = guessExtension(file);
+    const filePath = `order-designs/${customerUser.uid}/${orderId}/${Date.now()}_${index}.${extension}`;
+    const imageRef = firebase.storageApi.ref(firebase.storage, filePath);
+
+    await firebase.storageApi.uploadBytes(imageRef, file, {
+      contentType: file.type || "application/octet-stream"
+    });
+
+    return firebase.storageApi.getDownloadURL(imageRef);
+  });
+
+  return Promise.all(uploads);
+}
+
+function guessExtension(file) {
+  const nameMatch = file.name.toLowerCase().match(/\.([a-z0-9]+)$/);
+
+  if (nameMatch) {
+    return nameMatch[1];
+  }
+
+  switch (file.type) {
+    case "image/png":
+      return "png";
+    case "image/webp":
+      return "webp";
+    case "image/heic":
+      return "heic";
+    default:
+      return "jpg";
+  }
+}
+
+function clearPreviewUrls() {
+  previewUrls.forEach((url) => URL.revokeObjectURL(url));
+  previewUrls = [];
 }
 
 function clean(value) {

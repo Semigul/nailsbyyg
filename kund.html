@@ -106,8 +106,21 @@
             name="notes"
             rows="5"
             maxlength="500"
-            placeholder="Berätta gärna så mycket som möjligt"
+            placeholder="Berätta gärna så mycket som möjligt. Du kan också ladda upp inspirationsbilder nedan."
           ></textarea>
+
+          <div class="customer-upload-group">
+            <label for="customerDesignImages">Ladda upp inspirationsbilder (valfritt)</label>
+            <input
+              id="customerDesignImages"
+              name="designImages"
+              type="file"
+              accept="image/*"
+              multiple
+            />
+            <p class="upload-help">Du kan välja upp till 4 bilder (JPG, PNG, WEBP, HEIC). Max 5 MB per bild.</p>
+            <div id="customerImagePreview" class="customer-image-preview" hidden></div>
+          </div>
 
           <p class="customer-shipping-note">
             Slutpris och eventuell frakt bekräftas av Nailsbyy.g innan beställningen påbörjas.
