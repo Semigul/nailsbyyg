@@ -100,11 +100,11 @@ async function onSubmitOrder(event) {
 
   try {
     const reference = firebase.firestoreApi.doc(firebase.firestoreApi.collection(firebase.db, "orders"));
-    const designImagePaths = await uploadDesignImages(reference.id, imageValidation.files);
+    const approvedDesignImageUrls = await uploadDesignImages(reference.id, imageValidation.files);
     const order = {
       ...orderDraft,
-      designImagePaths,
-      moderationStatus: designImagePaths.length > 0 ? "pending" : "approved"
+      approvedDesignImageUrls,
+      moderationStatus: "approved"
     };
 
     await firebase.firestoreApi.setDoc(reference, order);
@@ -276,42 +276,62 @@ async function uploadDesignImages(orderId, files) {
     return [];
   }
 
-  if (!firebase?.storage || !firebase?.storageApi) {
-    throw new Error("Firebase Storage är inte tillgängligt.");
-  }
+  const cloudinary = getCloudinaryConfig();
 
   const uploads = files.map(async (file, index) => {
-    const extension = guessExtension(file);
-    const filePath = `order-designs/${customerUser.uid}/${orderId}/${Date.now()}_${index}.${extension}`;
-    const imageRef = firebase.storageApi.ref(firebase.storage, filePath);
+    const formData = new FormData();
+    const timestamp = Date.now();
+    const publicId = `${orderId}_${timestamp}_${index}`;
 
-    await firebase.storageApi.uploadBytes(imageRef, file, {
-      contentType: file.type || "application/octet-stream"
-    });
+    formData.append("file", file);
+    formData.append("upload_preset", cloudinary.uploadPreset);
+    formData.append("folder", cloudinary.folder);
+    formData.append("public_id", publicId);
 
-    return filePath;
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudinary.cloudName}/image/upload`,
+      {
+        method: "POST",
+        body: formData
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Cloudinary-uppladdning misslyckades.");
+    }
+
+    const result = await response.json();
+
+    if (!result.secure_url) {
+      throw new Error("Cloudinary svarade utan bild-URL.");
+    }
+
+    return result.secure_url;
   });
 
   return Promise.all(uploads);
 }
 
-function guessExtension(file) {
-  const nameMatch = file.name.toLowerCase().match(/\.([a-z0-9]+)$/);
+function getCloudinaryConfig() {
+  const config = window.CLOUDINARY_CONFIG;
 
-  if (nameMatch) {
-    return nameMatch[1];
+  if (!config || typeof config !== "object") {
+    throw new Error("Cloudinary är inte konfigurerat.");
   }
 
-  switch (file.type) {
-    case "image/png":
-      return "png";
-    case "image/webp":
-      return "webp";
-    case "image/heic":
-      return "heic";
-    default:
-      return "jpg";
+  const cloudName = clean(config.cloudName);
+  const uploadPreset = clean(config.uploadPreset);
+  const folder = clean(config.folder) || "nailsbyyg-orders";
+
+  if (!cloudName || !uploadPreset) {
+    throw new Error("Cloudinary kräver cloudName och uploadPreset.");
   }
+
+  return {
+    cloudName,
+    uploadPreset,
+    folder
+  };
 }
 
 function clearPreviewUrls() {

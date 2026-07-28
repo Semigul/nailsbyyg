@@ -66,10 +66,17 @@ service cloud.firestore {
         && request.resource.data.designImagePaths is list
         && request.resource.data.designImagePaths.size() <= 4
         && request.resource.data.approvedDesignImageUrls is list
-        && request.resource.data.approvedDesignImageUrls.size() == 0
+        && request.resource.data.approvedDesignImageUrls.size() <= 4
         && (
-          (request.resource.data.designImagePaths.size() == 0 && request.resource.data.moderationStatus == "approved")
-          || (request.resource.data.designImagePaths.size() > 0 && request.resource.data.moderationStatus == "pending")
+          (
+            request.resource.data.designImagePaths.size() == 0
+            && request.resource.data.moderationStatus == "approved"
+          )
+          || (
+            request.resource.data.designImagePaths.size() > 0
+            && request.resource.data.approvedDesignImageUrls.size() == 0
+            && request.resource.data.moderationStatus == "pending"
+          )
         )
         && request.resource.data.moderationReason is string
         && request.resource.data.moderationReason.size() <= 160

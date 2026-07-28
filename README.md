@@ -66,6 +66,32 @@ Mer detaljer finns i `functions/README.md`.
 
 Kunder autentiseras anonymt och får endast skapa validerade orderdokument. Endast användare som har ett dokument i `admins` får läsa, ändra eller radera ordrar.
 
+## Cloudinary (bilduppladdning utan Firebase Storage-plan)
+
+Ja, du behöver ett Cloudinary-konto för att kunna ladda upp kundbilder.
+
+1. Skapa konto i Cloudinary.
+2. Skapa ett unsigned upload preset i Cloudinary Console.
+3. Fyll i `window.CLOUDINARY_CONFIG` i `firebase.config.js` lokalt.
+
+Format:
+
+```js
+window.CLOUDINARY_CONFIG = {
+	cloudName: "DIN_CLOUD_NAME",
+	uploadPreset: "DIN_UNSIGNED_UPLOAD_PRESET",
+	folder: "nailsbyyg-orders"
+};
+```
+
+För deploy via GitHub Actions kan samma värden läggas in i `FIREBASE_CONFIG` secret som:
+
+- `cloudinaryCloudName`
+- `cloudinaryUploadPreset`
+- `cloudinaryFolder` (valfritt)
+
+Alternativt som objekt under nyckeln `cloudinary`.
+
 ## Publicera till GitHub Pages
 
 Engångsinställning:

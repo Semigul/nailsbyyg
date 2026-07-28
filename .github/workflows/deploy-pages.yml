@@ -52,9 +52,18 @@ jobs:
             if (missing.length) {
               throw new Error(`FIREBASE_CONFIG saknar: ${missing.join(", ")}`);
             }
+            const cloudinary = config.cloudinary || {
+              cloudName: config.cloudinaryCloudName,
+              uploadPreset: config.cloudinaryUploadPreset,
+              folder: config.cloudinaryFolder || "nailsbyyg-orders"
+            };
+            const hasCloudinary = cloudinary.cloudName && cloudinary.uploadPreset;
+            const cloudinaryScript = hasCloudinary
+              ? `window.CLOUDINARY_CONFIG = ${JSON.stringify(cloudinary)};\n`
+              : "";
             fs.writeFileSync(
               "firebase.config.js",
-              `window.FIREBASE_CONFIG = ${JSON.stringify(config)};\n`
+              `window.FIREBASE_CONFIG = ${JSON.stringify(config)};\n${cloudinaryScript}`
             );
           '
 
