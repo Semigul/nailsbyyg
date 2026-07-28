@@ -1,0 +1,85 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    function isAnonymousCustomer() {
+      return isSignedIn()
+        && request.auth.token.firebase.sign_in_provider == "anonymous";
+    }
+
+    function isValidCustomerOrder() {
+      return isAnonymousCustomer()
+        && request.resource.data.keys().hasOnly([
+          "customer",
+          "contact",
+          "product",
+          "quantity",
+          "deliveryMethod",
+          "address",
+          "dueDate",
+          "notes",
+          "price",
+          "weight",
+          "shippingCost",
+          "status",
+          "source",
+          "customerId",
+          "createdAt",
+          "updatedAt"
+        ])
+        && request.resource.data.customer is string
+        && request.resource.data.customer.size() > 0
+        && request.resource.data.customer.size() <= 40
+        && request.resource.data.contact is string
+        && request.resource.data.contact.size() > 0
+        && request.resource.data.contact.size() <= 100
+        && request.resource.data.product is string
+        && request.resource.data.product.size() > 0
+        && request.resource.data.product.size() <= 80
+        && request.resource.data.quantity is int
+        && request.resource.data.quantity >= 1
+        && request.resource.data.quantity <= 99
+        && request.resource.data.deliveryMethod in ["Postas", "Hämtas"]
+        && request.resource.data.address is string
+        && request.resource.data.address.size() <= 250
+        && (
+          request.resource.data.deliveryMethod == "Hämtas"
+          || request.resource.data.address.size() > 0
+        )
+        && request.resource.data.dueDate is string
+        && request.resource.data.notes is string
+        && request.resource.data.notes.size() <= 500
+        && request.resource.data.price == 0
+        && request.resource.data.weight == 0
+        && request.resource.data.shippingCost == 0
+        && request.resource.data.status == "Ny"
+        && request.resource.data.source == "customer"
+        && request.resource.data.customerId == request.auth.uid
+        && request.resource.data.createdAt is int
+        && request.resource.data.updatedAt is int;
+    }
+
+    match /admins/{adminId} {
+      allow get: if isSignedIn() && request.auth.uid == adminId;
+      allow list, create, update, delete: if false;
+    }
+
+    match /orders/{orderId} {
+      allow create: if isAdmin() || isValidCustomerOrder();
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

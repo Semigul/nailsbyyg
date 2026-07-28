@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#fff9f6" />
+    <title>Beställ hos Nailsbyy.g</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body class="customer-page">
+    <main class="customer-shell">
+      <header class="customer-hero">
+        <div class="brand-logo customer-logo">
+          <img src="./assets/logos/05-script-accent.svg" alt="Nailsbyy.g" />
+        </div>
+        <p class="eyebrow">Kundbeställning</p>
+        <h1>Vad vill du beställa?</h1>
+        <p>Fyll i formuläret så hamnar din förfrågan direkt hos Nailsbyy.g.</p>
+      </header>
+
+      <section class="card customer-order-card">
+        <div id="customerConnectionStatus" class="connection-notice" role="status">
+          Ansluter till beställningssystemet…
+        </div>
+
+        <form id="customerOrderForm" hidden>
+          <div class="two-col customer-contact-grid">
+            <div>
+              <label for="customerName">Namn</label>
+              <input
+                id="customerName"
+                name="customer"
+                type="text"
+                maxlength="40"
+                autocomplete="name"
+                placeholder="Ditt namn"
+                required
+              />
+            </div>
+            <div>
+              <label for="customerContact">Telefon eller e-post</label>
+              <input
+                id="customerContact"
+                name="contact"
+                type="text"
+                maxlength="100"
+                autocomplete="email"
+                placeholder="Så att vi kan nå dig"
+                required
+              />
+            </div>
+          </div>
+
+          <label for="customerProduct">Behandling eller produkt</label>
+          <input
+            id="customerProduct"
+            name="product"
+            type="text"
+            maxlength="80"
+            placeholder="Beskriv vad du vill beställa"
+            required
+          />
+
+          <div class="two-col">
+            <div>
+              <label for="customerQuantity">Antal</label>
+              <input id="customerQuantity" name="quantity" type="number" min="1" max="99" value="1" required />
+            </div>
+            <div>
+              <label for="customerDelivery">Leveranssätt</label>
+              <select id="customerDelivery" name="deliveryMethod" required>
+                <option value="Postas">Postas</option>
+                <option value="Hämtas">Hämtas</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="customerAddressGroup">
+            <label for="customerAddress">Leveransadress</label>
+            <textarea
+              id="customerAddress"
+              name="address"
+              rows="3"
+              maxlength="250"
+              autocomplete="street-address"
+              placeholder="Gatuadress, postnummer och ort"
+              required
+            ></textarea>
+          </div>
+
+          <label for="customerDueDate">Önskat datum</label>
+          <input id="customerDueDate" name="dueDate" type="date" required />
+
+          <label for="customerNotes">Färg, form och övriga önskemål</label>
+          <textarea
+            id="customerNotes"
+            name="notes"
+            rows="5"
+            maxlength="500"
+            placeholder="Berätta gärna så mycket som möjligt"
+          ></textarea>
+
+          <p class="customer-shipping-note">
+            Slutpris och eventuell frakt bekräftas av Nailsbyy.g innan beställningen påbörjas.
+          </p>
+
+          <button type="submit" class="primary customer-submit">Skicka beställning</button>
+          <p id="customerFormMessage" class="form-message" aria-live="polite"></p>
+        </form>
+
+        <div id="customerSuccess" class="customer-success" hidden>
+          <span class="success-mark" aria-hidden="true">✓</span>
+          <p class="section-kicker">Beställningen är skickad</p>
+          <h2>Tack för din förfrågan!</h2>
+          <p>Nailsbyy.g återkommer till dig med pris och bekräftelse.</p>
+          <p id="customerOrderReference" class="order-reference"></p>
+          <button type="button" class="ghost" id="newCustomerOrder">Lägg en ny beställning</button>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="./customer.js"></script>
+  </body>
+</html>
