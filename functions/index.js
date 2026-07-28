@@ -1,6 +1,8 @@
-const { randomUUID } = require("crypto");
+const { randomUUID, createHash } = require("crypto");
+const { onRequest } = require("firebase-functions/v2/https");
 const { onObjectFinalized } = require("firebase-functions/v2/storage");
 const { logger } = require("firebase-functions");
+const { defineSecret } = require("firebase-functions/params");
 const admin = require("firebase-admin");
 const vision = require("@google-cloud/vision");
 
@@ -11,6 +13,76 @@ const storage = admin.storage();
 const FieldValue = admin.firestore.FieldValue;
 const visionClient = new vision.ImageAnnotatorClient();
 const FLAGGED_LEVELS = new Set(["LIKELY", "VERY_LIKELY"]);
+const DEFAULT_CLOUDINARY_FOLDER = "nailsbyyg-orders";
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
+const CLOUDINARY_CLOUD_NAME = defineSecret("CLOUDINARY_CLOUD_NAME");
+const CLOUDINARY_API_KEY = defineSecret("CLOUDINARY_API_KEY");
+const CLOUDINARY_API_SECRET = defineSecret("CLOUDINARY_API_SECRET");
+
+exports.signCloudinaryUpload = onRequest({
+  cors: true,
+  memory: "256MiB",
+  timeoutSeconds: 30,
+  secrets: [CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET]
+}, async (req, res) => {
+  if (req.method === "OPTIONS") {
+    res.status(204).send("");
+    return;
+  }
+
+  if (req.method !== "POST") {
+    res.status(405).json({ error: "Method not allowed" });
+    return;
+  }
+
+  try {
+    const token = getBearerToken(req.headers.authorization || "");
+
+    if (!token) {
+      res.status(401).json({ error: "Missing auth token" });
+      return;
+    }
+
+    await admin.auth().verifyIdToken(token);
+
+    const orderId = String(req.body?.orderId || "").trim();
+    const fileIndex = Number(req.body?.fileIndex);
+
+    if (!/^[a-zA-Z0-9_-]{6,120}$/.test(orderId) || !Number.isInteger(fileIndex) || fileIndex < 0) {
+      res.status(400).json({ error: "Invalid payload" });
+      return;
+    }
+
+    const folder = sanitizeFolder(String(req.body?.folder || DEFAULT_CLOUDINARY_FOLDER));
+    const timestamp = Math.floor(Date.now() / 1000);
+    const publicId = `${orderId}_${timestamp}_${fileIndex}`;
+    const cloudName = CLOUDINARY_CLOUD_NAME.value();
+    const apiKey = CLOUDINARY_API_KEY.value();
+    const apiSecret = CLOUDINARY_API_SECRET.value();
+
+    const signingParams = {
+      folder,
+      max_file_size: MAX_FILE_SIZE_BYTES,
+      public_id: publicId,
+      timestamp
+    };
+
+    const signature = signCloudinaryParams(signingParams, apiSecret);
+
+    res.status(200).json({
+      cloudName,
+      apiKey,
+      folder,
+      publicId,
+      signature,
+      timestamp,
+      maxFileSize: MAX_FILE_SIZE_BYTES
+    });
+  } catch (error) {
+    logger.error("Cloudinary signering misslyckades", error);
+    res.status(500).json({ error: "Signing failed" });
+  }
+});
 
 exports.moderateDesignImage = onObjectFinalized({
   memory: "512MiB",
@@ -125,4 +197,32 @@ async function ensureDownloadUrl(bucketName, objectPath) {
   }
 
   return `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodeURIComponent(objectPath)}?alt=media&token=${token}`;
+}
+
+function signCloudinaryParams(params, apiSecret) {
+  const serialized = Object.keys(params)
+    .sort()
+    .map((key) => `${key}=${params[key]}`)
+    .join("&");
+
+  return createHash("sha1").update(`${serialized}${apiSecret}`).digest("hex");
+}
+
+function sanitizeFolder(rawFolder) {
+  const normalized = String(rawFolder || "")
+    .trim()
+    .replace(/[^a-zA-Z0-9/_-]/g, "")
+    .replace(/\/+/g, "/")
+    .replace(/^\/+|\/+$/g, "");
+
+  if (!normalized || !normalized.startsWith(DEFAULT_CLOUDINARY_FOLDER)) {
+    return DEFAULT_CLOUDINARY_FOLDER;
+  }
+
+  return normalized;
+}
+
+function getBearerToken(headerValue) {
+  const match = String(headerValue).match(/^Bearer\s+(.+)$/i);
+  return match ? match[1] : "";
 }

@@ -71,22 +71,36 @@ Kunder autentiseras anonymt och får endast skapa validerade orderdokument. Enda
 Ja, du behöver ett Cloudinary-konto för att kunna ladda upp kundbilder.
 
 1. Skapa konto i Cloudinary.
-2. Skapa ett unsigned upload preset i Cloudinary Console.
-3. Fyll i `window.CLOUDINARY_CONFIG` i `firebase.config.js` lokalt.
+2. Skapa ett unsigned upload preset i Cloudinary Console (fallback).
+3. Deploya signeringsfunktionen i `functions/index.js`.
+4. Fyll i `window.CLOUDINARY_CONFIG` i `firebase.config.js` lokalt.
 
 Format:
 
 ```js
 window.CLOUDINARY_CONFIG = {
 	cloudName: "DIN_CLOUD_NAME",
+	signEndpoint: "DIN_FUNCTION_URL_FOR_SIGNERING",
 	uploadPreset: "DIN_UNSIGNED_UPLOAD_PRESET",
 	folder: "nailsbyyg-orders"
 };
 ```
 
+För strict 5 MB server-side kontroll, använd signerad upload via `signEndpoint`.
+`uploadPreset` kan behållas som fallback.
+
+Sätt function-secrets innan deploy:
+
+```bash
+firebase functions:secrets:set CLOUDINARY_CLOUD_NAME
+firebase functions:secrets:set CLOUDINARY_API_KEY
+firebase functions:secrets:set CLOUDINARY_API_SECRET
+```
+
 För deploy via GitHub Actions kan samma värden läggas in i `FIREBASE_CONFIG` secret som:
 
 - `cloudinaryCloudName`
+- `cloudinarySignEndpoint`
 - `cloudinaryUploadPreset`
 - `cloudinaryFolder` (valfritt)
 

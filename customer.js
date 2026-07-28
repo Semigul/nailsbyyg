@@ -278,6 +278,55 @@ async function uploadDesignImages(orderId, files) {
 
   const cloudinary = getCloudinaryConfig();
 
+  if (cloudinary.signEndpoint) {
+    return uploadDesignImagesSigned(orderId, files, cloudinary);
+  }
+
+  return uploadDesignImagesUnsigned(orderId, files, cloudinary);
+}
+
+async function uploadDesignImagesSigned(orderId, files, cloudinary) {
+  const uploads = files.map(async (file, index) => {
+    const signed = await requestCloudinarySignature(orderId, index, cloudinary.folder, cloudinary.signEndpoint);
+    const formData = new FormData();
+
+    formData.append("file", file);
+    formData.append("api_key", signed.apiKey);
+    formData.append("timestamp", String(signed.timestamp));
+    formData.append("signature", signed.signature);
+    formData.append("folder", signed.folder);
+    formData.append("public_id", signed.publicId);
+    formData.append("max_file_size", String(signed.maxFileSize));
+
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${signed.cloudName || cloudinary.cloudName}/image/upload`,
+      {
+        method: "POST",
+        body: formData
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Signerad Cloudinary-uppladdning misslyckades.");
+    }
+
+    const result = await response.json();
+
+    if (!result.secure_url) {
+      throw new Error("Cloudinary svarade utan bild-URL.");
+    }
+
+    return result.secure_url;
+  });
+
+  return Promise.all(uploads);
+}
+
+async function uploadDesignImagesUnsigned(orderId, files, cloudinary) {
+  if (!cloudinary.uploadPreset) {
+    throw new Error("Cloudinary uploadPreset saknas.");
+  }
+
   const uploads = files.map(async (file, index) => {
     const formData = new FormData();
     const timestamp = Date.now();
@@ -312,6 +361,28 @@ async function uploadDesignImages(orderId, files) {
   return Promise.all(uploads);
 }
 
+async function requestCloudinarySignature(orderId, fileIndex, folder, signEndpoint) {
+  const idToken = await customerUser.getIdToken();
+  const response = await fetch(signEndpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${idToken}`
+    },
+    body: JSON.stringify({
+      orderId,
+      fileIndex,
+      folder
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error("Kunde inte skapa signatur för bilduppladdning.");
+  }
+
+  return response.json();
+}
+
 function getCloudinaryConfig() {
   const config = window.CLOUDINARY_CONFIG;
 
@@ -321,15 +392,17 @@ function getCloudinaryConfig() {
 
   const cloudName = clean(config.cloudName);
   const uploadPreset = clean(config.uploadPreset);
+  const signEndpoint = clean(config.signEndpoint);
   const folder = clean(config.folder) || "nailsbyyg-orders";
 
-  if (!cloudName || !uploadPreset) {
-    throw new Error("Cloudinary kräver cloudName och uploadPreset.");
+  if (!cloudName && !signEndpoint) {
+    throw new Error("Cloudinary kräver cloudName eller signEndpoint.");
   }
 
   return {
     cloudName,
     uploadPreset,
+    signEndpoint,
     folder
   };
 }

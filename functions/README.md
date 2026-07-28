@@ -1,15 +1,17 @@
-# Moderation Function
+# Functions
 
-Denna mapp innehaller en Cloud Function som modererar uppladdade designbilder med Google Cloud Vision SafeSearch.
+Denna mapp innehaller funktioner for bilduppladdning och moderering.
 
-## Flode
+## Funktioner
 
-1. Kund laddar upp bild till `order-designs/{uid}/{orderId}/...`.
-2. Function triggas pa Storage `onObjectFinalized`.
-3. Bilden analyseras med SafeSearch.
-4. Om flaggad: bilden tas bort och ordern markeras `rejected`.
-5. Om godkand: URL laggs till i `approvedDesignImageUrls`.
-6. Admin visar endast `approvedDesignImageUrls`.
+1. `signCloudinaryUpload`
+- HTTPS endpoint som skapar signerade Cloudinary-parametrar.
+- API secret stannar pa serversidan.
+- Tvingar `max_file_size` till 5 MB server-side.
+
+2. `moderateDesignImage` (valfri)
+- Storage-trigger som modererar Firebase Storage-bilder med SafeSearch.
+- Behovs bara om ni fortsatt anvander Firebase Storage-baserat flode.
 
 ## Deploy
 
@@ -21,5 +23,9 @@ Denna mapp innehaller en Cloud Function som modererar uppladdade designbilder me
 
 ## Krav
 
-- Billing/API tillgang for Cloud Vision API
-- Firebase project med Firestore + Storage
+- Firebase project med Firestore
+- For signed Cloudinary: hemligheter
+	- `CLOUDINARY_CLOUD_NAME`
+	- `CLOUDINARY_API_KEY`
+	- `CLOUDINARY_API_SECRET`
+- For `moderateDesignImage`: Cloud Vision API + Firebase Storage

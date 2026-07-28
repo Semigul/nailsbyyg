@@ -9,9 +9,12 @@ window.FIREBASE_CONFIG = {
   appId: "1:1234567890:web:abcdef123456"
 };
 
-// Cloudinary for kunders bilduppladdning (unsigned upload preset).
+// Cloudinary for kunders bilduppladdning.
+// Rekommenderat: signerad upload med signEndpoint.
 window.CLOUDINARY_CONFIG = {
   cloudName: "DIN_CLOUD_NAME",
+  signEndpoint: "DIN_FUNCTION_URL_FOR_SIGNERING",
+  // Optional fallback for unsigned mode:
   uploadPreset: "DIN_UNSIGNED_UPLOAD_PRESET",
   folder: "nailsbyyg-orders"
 };

@@ -54,10 +54,11 @@ jobs:
             }
             const cloudinary = config.cloudinary || {
               cloudName: config.cloudinaryCloudName,
+              signEndpoint: config.cloudinarySignEndpoint,
               uploadPreset: config.cloudinaryUploadPreset,
               folder: config.cloudinaryFolder || "nailsbyyg-orders"
             };
-            const hasCloudinary = cloudinary.cloudName && cloudinary.uploadPreset;
+            const hasCloudinary = cloudinary.cloudName || cloudinary.signEndpoint;
             const cloudinaryScript = hasCloudinary
               ? `window.CLOUDINARY_CONFIG = ${JSON.stringify(cloudinary)};\n`
               : "";
