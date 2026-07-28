@@ -115,7 +115,7 @@ async function onSubmitOrder(event) {
     ui.success.scrollIntoView({ behavior: "smooth", block: "center" });
   } catch (error) {
     console.error(error);
-    ui.formMessage.textContent = "Beställningen kunde inte skickas. Kontrollera anslutningen och försök igen.";
+    ui.formMessage.textContent = toUserError(error);
   } finally {
     submitButton.disabled = false;
     submitButton.textContent = "Skicka beställning";
@@ -306,11 +306,12 @@ async function uploadDesignImagesSigned(orderId, files, cloudinary) {
       }
     );
 
-    if (!response.ok) {
-      throw new Error("Signerad Cloudinary-uppladdning misslyckades.");
-    }
+    const result = await readJsonSafe(response);
 
-    const result = await response.json();
+    if (!response.ok) {
+      const cloudinaryMessage = readCloudinaryError(result);
+      throw new Error(cloudinaryMessage || "Signerad Cloudinary-uppladdning misslyckades.");
+    }
 
     if (!result.secure_url) {
       throw new Error("Cloudinary svarade utan bild-URL.");
@@ -345,11 +346,12 @@ async function uploadDesignImagesUnsigned(orderId, files, cloudinary) {
       }
     );
 
-    if (!response.ok) {
-      throw new Error("Cloudinary-uppladdning misslyckades.");
-    }
+    const result = await readJsonSafe(response);
 
-    const result = await response.json();
+    if (!response.ok) {
+      const cloudinaryMessage = readCloudinaryError(result);
+      throw new Error(cloudinaryMessage || "Cloudinary-uppladdning misslyckades.");
+    }
 
     if (!result.secure_url) {
       throw new Error("Cloudinary svarade utan bild-URL.");
@@ -376,11 +378,13 @@ async function requestCloudinarySignature(orderId, fileIndex, folder, signEndpoi
     })
   });
 
+  const result = await readJsonSafe(response);
+
   if (!response.ok) {
-    throw new Error("Kunde inte skapa signatur för bilduppladdning.");
+    throw new Error(result?.error || "Kunde inte skapa signatur för bilduppladdning.");
   }
 
-  return response.json();
+  return result;
 }
 
 function getCloudinaryConfig() {
@@ -424,4 +428,50 @@ function syncFileInputFromSelection() {
 
 function clean(value) {
   return String(value || "").trim();
+}
+
+async function readJsonSafe(response) {
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+function readCloudinaryError(result) {
+  if (!result) {
+    return "";
+  }
+
+  if (typeof result.error === "string") {
+    return result.error;
+  }
+
+  if (result.error && typeof result.error.message === "string") {
+    return result.error.message;
+  }
+
+  return "";
+}
+
+function toUserError(error) {
+  const message = clean(error?.message);
+
+  if (!message) {
+    return "Beställningen kunde inte skickas. Kontrollera anslutningen och försök igen.";
+  }
+
+  if (/upload preset/i.test(message)) {
+    return "Cloudinary-preseten verkar felkonfigurerad. Kontrollera upload preset och allowed origins.";
+  }
+
+  if (/cors|origin/i.test(message)) {
+    return "Cloudinary blockerar denna domän. Lägg till semigul.github.io i allowed origins.";
+  }
+
+  if (/permission|missing or insufficient permissions|firestore/i.test(message)) {
+    return "Behörighet nekades i Firebase. Kontrollera Firestore-rules och inloggning.";
+  }
+
+  return `Fel: ${message}`;
 }
