@@ -4,230 +4,41 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#fff9f6" />
-    <title>Nailsbyy.g – Orderkompis</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="./styles.css" />
+    <title>Nailsbyy.g</title>
+    <meta http-equiv="refresh" content="0; url=./kund.html" />
+    <script>
+      const target = new URL("./kund.html", window.location.href);
+      target.search = window.location.search;
+      target.hash = window.location.hash;
+      window.location.replace(target.toString());
+    </script>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        font-family: Manrope, sans-serif;
+        background: #fff9f6;
+        color: #2c2532;
+      }
+
+      main {
+        padding: 1rem;
+        text-align: center;
+      }
+
+      a {
+        color: #8e2d63;
+        font-weight: 700;
+      }
+    </style>
   </head>
   <body>
-    <main class="app-shell">
-      <header class="hero">
-        <div class="brand-logo">
-          <img src="./assets/logos/05-script-accent.svg" alt="Nailsbyy.g" />
-        </div>
-        <div class="hero-copy">
-          <p class="eyebrow">Admin · Orderhantering</p>
-          <div class="admin-session">
-            <span class="connection-badge" id="connectionBadge">Ansluter till Firebase…</span>
-            <a class="customer-view-link" href="./kund.html">Öppna kundvyn</a>
-            <button type="button" class="session-button" id="signOutButton" hidden>Logga ut</button>
-          </div>
-        </div>
-      </header>
-
-      <section class="card auth-card" id="adminAuthCard">
-        <p class="section-kicker">Skyddad adminvy</p>
-        <h1>Logga in</h1>
-        <p class="auth-intro">Använd admin-kontot som du skapade i Firebase Authentication.</p>
-        <form id="adminLoginForm">
-          <label for="adminEmail">E-post</label>
-          <input id="adminEmail" name="email" type="email" autocomplete="username" required />
-
-          <label for="adminPassword">Lösenord</label>
-          <input
-            id="adminPassword"
-            name="password"
-            type="password"
-            autocomplete="current-password"
-            minlength="6"
-            required
-          />
-
-          <button type="submit" class="primary auth-submit" id="adminLoginButton" disabled>Logga in</button>
-          <p id="adminAuthMessage" class="form-message" aria-live="polite"></p>
-        </form>
-      </section>
-
-      <section class="summary admin-content" aria-label="Sammanfattning av ordrar" hidden>
-        <article>
-          <h2 id="totalCount">0</h2>
-          <p>Totalt</p>
-        </article>
-        <article>
-          <h2 id="activeCount">0</h2>
-          <p>Aktiva</p>
-        </article>
-        <article>
-          <h2 id="doneCount">0</h2>
-          <p>Klara</p>
-        </article>
-      </section>
-
-      <section class="card filter-card admin-content" id="filterCard" hidden>
-        <p class="section-kicker">Översikt</p>
-        <h2>Visa ordrar</h2>
-        <div class="chips" id="statusChips"></div>
-      </section>
-
-      <section class="card form-card admin-content" hidden>
-        <p class="section-kicker">Beställning</p>
-        <h2 id="formTitle">Ny order</h2>
-        <form id="orderForm">
-          <input type="hidden" id="orderId" />
-
-          <label for="customer">Kundens namn</label>
-          <input id="customer" name="customer" type="text" required maxlength="40" placeholder="Till exempel Sara" />
-
-          <label for="contact">Telefon eller e-post</label>
-          <input
-            id="contact"
-            name="contact"
-            type="text"
-            maxlength="100"
-            placeholder="Kundens kontaktuppgifter"
-          />
-
-          <label for="address">Leveransadress</label>
-          <textarea
-            id="address"
-            name="address"
-            rows="3"
-            maxlength="250"
-            placeholder="Gatuadress, postnummer och ort"
-          ></textarea>
-
-          <label for="product">Behandling eller produkt</label>
-          <input
-            id="product"
-            name="product"
-            type="text"
-            required
-            maxlength="60"
-            placeholder="Till exempel geléförlängning"
-          />
-
-          <div class="two-col">
-            <div>
-              <label for="quantity">Antal</label>
-              <input id="quantity" name="quantity" type="number" min="1" max="999" value="1" required />
-            </div>
-            <div>
-              <label for="price">Pris (kr)</label>
-              <input id="price" name="price" type="number" min="0" step="1" value="0" required />
-            </div>
-          </div>
-
-          <div class="two-col">
-            <div>
-              <label for="weight">Vikt inkl. emballage (g)</label>
-              <input
-                id="weight"
-                name="weight"
-                type="number"
-                min="0"
-                max="2000"
-                step="1"
-                inputmode="numeric"
-                placeholder="Till exempel 85"
-                aria-describedby="shippingHint"
-              />
-            </div>
-            <div>
-              <label for="dueDate">Leveransdatum</label>
-              <input id="dueDate" name="dueDate" type="date" required />
-            </div>
-          </div>
-
-          <div class="shipping-estimate" aria-live="polite">
-            <div>
-              <span class="shipping-label">PostNord Sverigebrev</span>
-              <small id="shippingHint">Ange totalvikten för att beräkna frakten.</small>
-            </div>
-            <strong id="shippingEstimate">–</strong>
-          </div>
-          <p class="shipping-source">
-            Frimärkt brev inrikes, priser från 1 januari 2026.
-            <a
-              href="https://www.postnord.se/privat/priser-och-villkor/portotabeller/portotabell-brev/"
-              target="_blank"
-              rel="noreferrer"
-            >Se PostNords portotabell</a>.
-          </p>
-
-          <div class="two-col">
-            <div>
-              <label for="deliveryMethod">Leveranssätt</label>
-              <select id="deliveryMethod" name="deliveryMethod" required>
-                <option value="Postas">Postas</option>
-                <option value="Hämtas">Hämtas</option>
-              </select>
-            </div>
-            <div>
-              <label for="status">Status</label>
-              <select id="status" name="status" required>
-                <option value="Ny">Ny</option>
-                <option value="Pågår">Pågår</option>
-                <option value="Klar">Klar</option>
-                <option value="Levererad">Levererad</option>
-              </select>
-            </div>
-          </div>
-
-          <label for="notes">Anteckning (valfritt)</label>
-          <textarea
-            id="notes"
-            name="notes"
-            rows="3"
-            maxlength="200"
-            placeholder="Färg, form, nail art eller andra önskemål"
-          ></textarea>
-
-          <div class="actions">
-            <button type="submit" class="primary" id="saveButton">Spara order</button>
-            <button type="button" class="ghost" id="resetButton">Rensa</button>
-          </div>
-        </form>
-      </section>
-
-      <section class="card orders-card admin-content" hidden>
-        <div class="orders-heading">
-          <div>
-            <p class="section-kicker">Orderflöde</p>
-            <h2>Dina ordrar</h2>
-          </div>
-          <div class="view-toggle" role="group" aria-label="Välj ordervy">
-            <button type="button" class="view-button active" data-view="board" aria-pressed="true">Board</button>
-            <button type="button" class="view-button" data-view="list" aria-pressed="false">Lista</button>
-          </div>
-          <button type="button" class="mobile-new-order" id="newOrderShortcut">+ Ny order</button>
-        </div>
-        <div id="kanbanBoard" class="kanban-board" aria-label="Orderflöde som Kanban-board"></div>
-        <div id="ordersList" class="orders-list" hidden></div>
-      </section>
+    <main>
+      <p>Du skickas till kundsidan.</p>
+      <p><a href="./kund.html">Öppna kundsidan</a></p>
+      <p><a href="./admin.html">Admin</a></p>
     </main>
-
-    <template id="orderTemplate">
-      <article class="order-item">
-        <header>
-          <h3 class="order-title"></h3>
-          <span class="order-status"></span>
-        </header>
-        <p class="order-contact"></p>
-        <p class="order-address"></p>
-        <p class="order-meta"></p>
-        <p class="order-notes"></p>
-        <div class="item-actions">
-          <button class="mini" data-action="next">Flytta vidare</button>
-          <button class="mini" data-action="edit">Redigera</button>
-          <button class="mini danger" data-action="delete">Ta bort</button>
-        </div>
-      </article>
-    </template>
-
-    <script type="module" src="./app.js"></script>
   </body>
 </html>

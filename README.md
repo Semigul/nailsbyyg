@@ -25,9 +25,9 @@ python3 -m http.server 5500
 
 Öppna sedan `http://localhost:5500`.
 
-Adminvy: `http://localhost:5500/`
+Kundvy (standard): `http://localhost:5500/` eller `http://localhost:5500/kund.html`
 
-Kundvy: `http://localhost:5500/kund.html`
+Adminvy: `http://localhost:5500/admin.html`
 
 ## Firebase
 
