@@ -15,6 +15,7 @@ const ui = {
   address: document.getElementById("customerAddress"),
   dueDate: document.getElementById("customerDueDate"),
   designImages: document.getElementById("customerDesignImages"),
+  fileStatus: document.getElementById("customerFileStatus"),
   imagePreview: document.getElementById("customerImagePreview")
 };
 
@@ -128,6 +129,7 @@ function resetCustomerForm() {
   ui.imagePreview.innerHTML = "";
   ui.imagePreview.hidden = true;
   ui.form.reset();
+  updateFileStatus([]);
   setMinimumDate();
   updateAddressRequirement();
   ui.formMessage.textContent = "";
@@ -164,11 +166,13 @@ function onDesignImagesChange() {
     clearPreviewUrls();
     ui.imagePreview.innerHTML = "";
     ui.imagePreview.hidden = true;
+    updateFileStatus([]);
     return;
   }
 
   selectedDesignFiles = validation.files;
   ui.formMessage.textContent = "";
+  updateFileStatus(selectedDesignFiles);
   renderImagePreview(selectedDesignFiles);
 }
 
@@ -193,7 +197,17 @@ function onPreviewAction(event) {
 
   selectedDesignFiles.splice(index, 1);
   syncFileInputFromSelection();
+  updateFileStatus(selectedDesignFiles);
   renderImagePreview(selectedDesignFiles);
+}
+
+function updateFileStatus(files) {
+  if (files.length === 0) {
+    ui.fileStatus.textContent = "Inga bilder valda";
+    return;
+  }
+
+  ui.fileStatus.textContent = files.length === 1 ? "1 bild vald" : `${files.length} bilder valda`;
 }
 
 function validateImageSelection(fileList) {

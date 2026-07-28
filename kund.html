@@ -111,14 +111,29 @@
 
           <div class="customer-upload-group">
             <label for="customerDesignImages">Ladda upp inspirationsbilder (valfritt)</label>
-            <input
-              id="customerDesignImages"
-              name="designImages"
-              type="file"
-              accept="image/*"
-              multiple
-            />
-            <p class="upload-help">Du kan välja upp till 4 bilder (JPG, PNG, WEBP, HEIC). Max 5 MB per bild.</p>
+            <div class="customer-file-control">
+              <input
+                class="customer-file-input"
+                id="customerDesignImages"
+                name="designImages"
+                type="file"
+                accept="image/*"
+                aria-describedby="customerFileStatus customerUploadHelp"
+                multiple
+              />
+              <label class="customer-file-trigger" for="customerDesignImages">
+                <span class="customer-file-icon" aria-hidden="true">+</span>
+                <span class="customer-file-copy">
+                  <strong>Välj bilder</strong>
+                  <span>Tryck för att bläddra bland dina bilder</span>
+                </span>
+                <span class="customer-file-action" aria-hidden="true">Bläddra</span>
+              </label>
+              <p id="customerFileStatus" class="customer-file-status" aria-live="polite">Inga bilder valda</p>
+            </div>
+            <p id="customerUploadHelp" class="upload-help">
+              Du kan välja upp till 4 bilder (JPG, PNG, WEBP, HEIC). Max 5 MB per bild.
+            </p>
             <div id="customerImagePreview" class="customer-image-preview" hidden></div>
           </div>
 
