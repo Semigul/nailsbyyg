@@ -807,6 +807,38 @@ textarea {
   line-height: 1.6;
 }
 
+.customer-admin-access {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.8rem;
+}
+
+.customer-admin-link {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid rgba(112, 87, 99, 0.28);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.customer-admin-link:hover {
+  border-color: var(--pink-soft);
+  background: #fff;
+  color: var(--ink);
+}
+
 .customer-order-card {
   background: rgba(255, 255, 255, 0.95);
 }
