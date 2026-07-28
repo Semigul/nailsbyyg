@@ -911,6 +911,11 @@ textarea {
   margin-top: 0.55rem;
 }
 
+.customer-preview-item {
+  display: grid;
+  gap: 0.3rem;
+}
+
 .customer-preview-thumb {
   display: block;
   width: 100%;
@@ -919,6 +924,17 @@ textarea {
   border-radius: 0.7rem;
   object-fit: cover;
   background: #fff;
+}
+
+.customer-preview-remove {
+  min-height: 36px;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 0.55rem;
+  background: #fff;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
 }
 
 .customer-submit {

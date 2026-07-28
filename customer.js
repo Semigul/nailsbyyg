@@ -21,6 +21,7 @@ const ui = {
 let firebase;
 let customerUser;
 let previewUrls = [];
+let selectedDesignFiles = [];
 
 init();
 
@@ -30,6 +31,7 @@ async function init() {
   ui.newOrderButton.addEventListener("click", resetCustomerForm);
   ui.deliveryMethod.addEventListener("change", updateAddressRequirement);
   ui.designImages.addEventListener("change", onDesignImagesChange);
+  ui.imagePreview.addEventListener("click", onPreviewAction);
   updateAddressRequirement();
 
   try {
@@ -60,7 +62,7 @@ async function onSubmitOrder(event) {
 
   const submitButton = ui.form.querySelector('button[type="submit"]');
   const formData = new FormData(ui.form);
-  const imageValidation = validateImageSelection(ui.designImages.files);
+  const imageValidation = validateImageSelection(selectedDesignFiles);
 
   if (!imageValidation.ok) {
     ui.formMessage.textContent = imageValidation.message;
@@ -116,6 +118,7 @@ async function onSubmitOrder(event) {
 
 function resetCustomerForm() {
   clearPreviewUrls();
+  selectedDesignFiles = [];
   ui.imagePreview.innerHTML = "";
   ui.imagePreview.hidden = true;
   ui.form.reset();
@@ -151,14 +154,40 @@ function onDesignImagesChange() {
   if (!validation.ok) {
     ui.formMessage.textContent = validation.message;
     ui.designImages.value = "";
+    selectedDesignFiles = [];
     clearPreviewUrls();
     ui.imagePreview.innerHTML = "";
     ui.imagePreview.hidden = true;
     return;
   }
 
+  selectedDesignFiles = validation.files;
   ui.formMessage.textContent = "";
-  renderImagePreview(validation.files);
+  renderImagePreview(selectedDesignFiles);
+}
+
+function onPreviewAction(event) {
+  const target = event.target;
+
+  if (!(target instanceof HTMLButtonElement)) {
+    return;
+  }
+
+  const action = target.dataset.action;
+
+  if (action !== "remove-image") {
+    return;
+  }
+
+  const index = Number(target.dataset.index);
+
+  if (!Number.isInteger(index) || index < 0 || index >= selectedDesignFiles.length) {
+    return;
+  }
+
+  selectedDesignFiles.splice(index, 1);
+  syncFileInputFromSelection();
+  renderImagePreview(selectedDesignFiles);
 }
 
 function validateImageSelection(fileList) {
@@ -208,15 +237,28 @@ function renderImagePreview(files) {
 
   const fragment = document.createDocumentFragment();
 
-  files.forEach((file) => {
+  files.forEach((file, index) => {
     const objectUrl = URL.createObjectURL(file);
     previewUrls.push(objectUrl);
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "customer-preview-item";
 
     const img = document.createElement("img");
     img.className = "customer-preview-thumb";
     img.src = objectUrl;
     img.alt = `Förhandsvisning: ${file.name}`;
-    fragment.append(img);
+
+    const removeButton = document.createElement("button");
+    removeButton.type = "button";
+    removeButton.className = "customer-preview-remove";
+    removeButton.dataset.action = "remove-image";
+    removeButton.dataset.index = String(index);
+    removeButton.setAttribute("aria-label", `Ta bort bild ${index + 1}`);
+    removeButton.textContent = "Ta bort";
+
+    wrapper.append(img, removeButton);
+    fragment.append(wrapper);
   });
 
   ui.imagePreview.append(fragment);
@@ -269,6 +311,16 @@ function guessExtension(file) {
 function clearPreviewUrls() {
   previewUrls.forEach((url) => URL.revokeObjectURL(url));
   previewUrls = [];
+}
+
+function syncFileInputFromSelection() {
+  if (typeof DataTransfer === "undefined") {
+    return;
+  }
+
+  const transfer = new DataTransfer();
+  selectedDesignFiles.forEach((file) => transfer.items.add(file));
+  ui.designImages.files = transfer.files;
 }
 
 function clean(value) {
