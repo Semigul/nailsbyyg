@@ -16,8 +16,10 @@ Anvand denna checklista innan release.
 - Appen ska fungera utan backend (lokal lagring).
 - Om Firebase anvands ska appen fortsatt fungera lokalt vid fel.
 - Inga hemligheter far laggas i repo.
+- Ny eller andrad funktionalitet ska ha motsvarande Playwright E2E-test.
 
 ## Releasekrav
 - .github/workflows/deploy-pages.yml ska deploya utan fel.
-- Minst en manuell mobiltest ska goras fore release.
+- `npm test` ska passera i mobil viewport fore release.
+- GitHub Pages-jobbet ska vanta pa godkanda E2E-tester.
 - README ska beskriva hur man startar och deployar appen.

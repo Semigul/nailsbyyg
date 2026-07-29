@@ -16,7 +16,8 @@ user-invocable: true
 2. Run [preflight script](./scripts/preflight.sh) from the repository root.
 3. Confirm [deploy workflow](../../workflows/deploy-pages.yml) exists and points to root static files.
 4. Check that no secret config files are committed.
-5. Return a pass/fail checklist and next action.
+5. Confirm that `npm test` passed and that Pages deployment depends on the E2E job.
+6. Return a pass/fail checklist and next action.
 
 ## References
 - [Release checklist](./references/checklist.md)

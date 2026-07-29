@@ -7,6 +7,12 @@ required_files=(
   "index.html"
   "styles.css"
   "app.js"
+  "package.json"
+  "package-lock.json"
+  "playwright.config.js"
+  "tests/e2e/customer-order.spec.js"
+  "tests/e2e/admin-orders.spec.js"
+  ".githooks/pre-push"
   ".github/workflows/deploy-pages.yml"
   "README.md"
 )
@@ -21,5 +27,12 @@ done
 if [[ -f "firebase.config.js" ]]; then
   echo "WARN: firebase.config.js exists locally. Ensure it is not committed."
 fi
+
+if [[ ! -d "node_modules/@playwright/test" ]]; then
+  echo "FAIL: E2E dependencies are missing. Run npm install."
+  exit 1
+fi
+
+npm test
 
 echo "PASS: Preflight checks completed."

@@ -11,6 +11,11 @@ Why does this help the user?
 - [ ] Behavior 2
 - [ ] Behavior 3
 
+## E2E test plan
+- Existing scenario to update:
+- New scenario to add:
+- Regression that must keep passing:
+
 ## Non-goals
 What should NOT change?
 

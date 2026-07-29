@@ -6,22 +6,16 @@ user-invocable: true
 ---
 # Feature Change Skill
 
-## When to use
-- Add or adjust order behavior
-- Change state transitions
-- Add form fields or validation
-- Refactor app logic with behavior parity
-
 ## Procedure
 1. Capture expected behavior using [request template](./templates/request-template.md).
 2. Identify affected files and edge cases using [impact checklist](./references/impact-checklist.md).
-3. Implement smallest viable code change.
-4. Verify core flow manually:
-   - create order
-   - edit order
-   - advance status
-   - delete order
-5. Summarize result against acceptance criteria.
+3. Map every changed behavior to an existing or new Playwright scenario in `tests/e2e/`.
+4. Implement the smallest viable product change and its tests in the same change:
+   - Add or update an E2E test for every new behavior.
+   - Reproduce a bug in a test before or alongside its fix.
+   - Do not weaken or remove assertions unless the corresponding behavior is intentionally removed.
+5. Run `npm test`. Fix failures before committing or pushing.
+6. Summarize the result and name the tests that prove each acceptance criterion.
 
 ## Resources
 - [request template](./templates/request-template.md)

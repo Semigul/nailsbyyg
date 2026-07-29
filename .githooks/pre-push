@@ -1,0 +1,10 @@
+#!/usr/bin/env sh
+set -eu
+
+if [ ! -d "node_modules/@playwright/test" ]; then
+  echo "E2E-beroenden saknas. Kör npm install innan du pushar."
+  exit 1
+fi
+
+echo "Kör E2E-kontroller före push..."
+npm test

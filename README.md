@@ -31,6 +31,27 @@ Kundvy (standard): `http://localhost:5500/` eller `http://localhost:5500/kund.ht
 
 Adminvy: `http://localhost:5500/admin.html`
 
+## Automatiska tester
+
+Installera testverktygen en gång:
+
+```bash
+npm install
+npx playwright install chromium
+```
+
+Kör alla kod- och E2E-kontroller:
+
+```bash
+npm test
+```
+
+E2E-sviten kör kundflödet och adminflödet i mobil viewport med en isolerad Firebase-mock. Testdata skickas aldrig till produktion.
+
+`npm install` aktiverar repots versionerade `pre-push`-hook. Varje `git push` kör därefter `npm test` och stoppas om någon kontroll misslyckas.
+
+Vid ny funktionalitet ska motsvarande test läggas till eller uppdateras i `tests/e2e/`. Projektets Feature Change-skill och Product Builder-agent behandlar detta som ett leveranskrav.
+
 ## Firebase
 
 Firebase är aktiverat i appens kod. Följ dessa steg i Firebase Console:
@@ -119,7 +140,7 @@ Release med två klick:
 1. Öppna Actions → Publicera till GitHub Pages.
 2. Klicka Run workflow → Run workflow.
 
-Workflown publicerar även automatiskt när en ändring pushas till `main`.
+Workflown kör E2E-tester vid pull requests och push till `main`. GitHub Pages publiceras endast när hela testsuiten har passerat.
 
 ### Snabb preflight innan release
 
