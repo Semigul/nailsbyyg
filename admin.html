@@ -216,6 +216,14 @@
         <div id="kanbanBoard" class="kanban-board" aria-label="Orderflöde som Kanban-board"></div>
         <div id="ordersList" class="orders-list" hidden></div>
       </section>
+
+      <details class="archive-panel admin-content" id="archivePanel" hidden>
+        <summary>
+          <span>Arkiv</span>
+          <span class="archive-count" id="archiveCount">0</span>
+        </summary>
+        <div id="archiveOrders" class="archive-orders" aria-live="polite"></div>
+      </details>
     </main>
 
     <template id="orderTemplate">
@@ -230,8 +238,17 @@
         <p class="order-notes"></p>
         <div class="order-images"></div>
         <div class="item-actions">
+          <button
+            class="mini touch-drag-handle"
+            type="button"
+            data-drag-handle
+            aria-label="Dra ordern till en annan status"
+          >
+            Flytta
+          </button>
           <button class="mini" data-action="next">Flytta vidare</button>
           <button class="mini" data-action="edit">Redigera</button>
+          <button class="mini archive-action" data-action="archive">Arkivera</button>
           <button class="mini danger" data-action="delete">Ta bort</button>
         </div>
       </article>

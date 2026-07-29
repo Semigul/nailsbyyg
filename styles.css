@@ -792,7 +792,7 @@ textarea {
 
 .item-actions {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 0.4rem;
 }
 
@@ -811,6 +811,22 @@ textarea {
   border-color: #f2c9d2;
   background: #fff5f7;
   color: #9e2949;
+}
+
+.archive-action {
+  background: transparent;
+  color: var(--muted);
+}
+
+.touch-drag-handle,
+.mobile-status-control {
+  display: none;
+}
+
+.order-item.is-archived {
+  background: rgba(255, 252, 250, 0.72);
+  box-shadow: none;
+  opacity: 0.86;
 }
 
 .kanban-board .order-item {
@@ -847,6 +863,65 @@ textarea {
   color: var(--muted);
   font-size: 0.9rem;
   font-weight: 600;
+}
+
+.archive-panel {
+  grid-column: 1 / -1;
+  margin-top: 0.5rem;
+  padding: 0.2rem;
+  border: 0;
+  color: var(--muted);
+}
+
+.archive-panel summary {
+  display: flex;
+  width: fit-content;
+  min-height: 44px;
+  align-items: center;
+  gap: 0.45rem;
+  margin-left: auto;
+  padding: 0.45rem 0.65rem;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 700;
+  opacity: 0.5;
+  transition:
+    background 160ms ease,
+    opacity 160ms ease;
+}
+
+.archive-panel summary:hover,
+.archive-panel summary:focus-visible,
+.archive-panel[open] summary {
+  background: rgba(255, 255, 255, 0.76);
+  opacity: 1;
+}
+
+.archive-count {
+  min-width: 1.4rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 999px;
+  background: var(--surface-blush);
+  color: #9d3159;
+  text-align: center;
+}
+
+.archive-orders {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+  gap: 0.65rem;
+  margin-top: 0.65rem;
+  padding: 0.8rem;
+  border: 1px dashed var(--line);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.42);
+}
+
+.archive-empty {
+  padding: 0.8rem;
+  font-size: 0.8rem;
+  text-align: center;
 }
 
 .customer-page {
@@ -889,26 +964,27 @@ textarea {
   line-height: 1.6;
 }
 
-.customer-admin-access {
+.customer-footer-access {
   display: flex;
-  justify-content: flex-end;
-  margin-top: 0.8rem;
+  justify-content: center;
+  margin-top: 2.5rem;
 }
 
 .customer-admin-link {
   display: inline-flex;
-  min-height: 40px;
+  min-height: 44px;
   align-items: center;
   justify-content: center;
   padding: 0.45rem 0.8rem;
-  border: 1px solid rgba(112, 87, 99, 0.28);
+  border: 1px solid transparent;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.72);
+  background: transparent;
   color: var(--muted);
-  font-size: 0.76rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.02em;
   text-decoration: none;
+  opacity: 0.42;
   transition:
     border-color 160ms ease,
     background 160ms ease,
@@ -919,6 +995,13 @@ textarea {
   border-color: var(--pink-soft);
   background: #fff;
   color: var(--ink);
+  opacity: 1;
+}
+
+.customer-admin-link:focus-visible {
+  border-color: var(--pink);
+  color: var(--ink);
+  opacity: 1;
 }
 
 .customer-order-card {
@@ -1351,6 +1434,49 @@ textarea {
 
   .kanban-board .item-actions {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .touch-drag-handle {
+    display: block;
+    grid-column: 1 / -1;
+    min-height: 48px;
+    border-color: rgba(248, 108, 155, 0.38);
+    background: var(--surface-blush);
+    color: #9d3159;
+    touch-action: none;
+  }
+
+  .touch-drag-handle::before {
+    margin-right: 0.35rem;
+    content: "↕";
+  }
+
+  .mobile-status-control {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.55rem;
+    margin: 0.65rem 0;
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  .mobile-status-select {
+    min-height: 44px;
+    padding: 0.55rem 2rem 0.55rem 0.7rem;
+    border: 1px solid var(--line);
+    border-radius: 0.75rem;
+    background-color: #fff;
+    color: var(--ink);
+  }
+
+  body.is-touch-dragging {
+    user-select: none;
+  }
+
+  body.is-touch-dragging .kanban-column {
+    border-style: dashed;
   }
 }
 

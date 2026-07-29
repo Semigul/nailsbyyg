@@ -36,6 +36,82 @@ test("admin kan skapa, flytta, redigera och ta bort en order", async ({ page }) 
   expect(await readMockOrders(page)).toHaveLength(0);
 });
 
+test("admin kan arkivera och återställa en order från det dolda arkivet", async ({ page }) => {
+  await page.getByLabel("Kundens namn").fill("Alicia Arkiv");
+  await page.getByLabel("Behandling eller produkt").fill("Press-on set");
+  await page.getByRole("button", { name: "Spara order" }).click();
+
+  const newColumn = page.locator('.kanban-column[data-status="Ny"]');
+  await expect(newColumn.locator(".order-item")).toContainText("Alicia Arkiv");
+
+  page.once("dialog", (dialog) => dialog.accept());
+  await newColumn.getByRole("button", { name: "Arkivera" }).click();
+
+  await expect(newColumn.locator(".order-item")).toHaveCount(0);
+  await expect(page.locator("#totalCount")).toHaveText("0");
+  await expect(page.locator("#archiveCount")).toHaveText("1");
+
+  await page.locator("#archivePanel summary").click();
+  const archivedCard = page.locator("#archiveOrders .order-item");
+  await expect(archivedCard).toContainText("Alicia Arkiv");
+  await archivedCard.getByRole("button", { name: "Återställ" }).click();
+
+  await expect(page.locator("#archiveCount")).toHaveText("0");
+  await expect(newColumn.locator(".order-item")).toContainText("Alicia Arkiv");
+  expect(await readMockOrders(page)).toMatchObject([{ archivedAt: null }]);
+});
+
+test("orderstatus kan flyttas med en touchvänlig kontroll på iPhone-storlek", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 3000 });
+  await page.getByLabel("Kundens namn").fill("Mobil Test");
+  await page.getByLabel("Behandling eller produkt").fill("Mobil design");
+  await page.getByRole("button", { name: "Spara order" }).click();
+
+  const newColumn = page.locator('.kanban-column[data-status="Ny"]');
+  const card = newColumn.locator(".order-item");
+  const dragHandle = card.getByRole("button", { name: "Dra ordern till en annan status" });
+
+  await expect(dragHandle).toBeVisible();
+  const handleBox = await dragHandle.boundingBox();
+  expect(handleBox?.height).toBeGreaterThanOrEqual(44);
+
+  await page.evaluate(() => {
+    const handle = document.querySelector('[data-status="Ny"] [data-drag-handle]');
+    const target = document.querySelector('[data-status="Klar"]');
+    const startBox = handle.getBoundingClientRect();
+    const targetBox = target.getBoundingClientRect();
+    const pointer = {
+      bubbles: true,
+      pointerId: 13,
+      pointerType: "touch",
+      clientX: startBox.left + startBox.width / 2,
+      clientY: startBox.top + startBox.height / 2
+    };
+
+    handle.dispatchEvent(new PointerEvent("pointerdown", pointer));
+    handle.dispatchEvent(new PointerEvent("pointermove", {
+      ...pointer,
+      clientX: targetBox.left + targetBox.width / 2,
+      clientY: targetBox.top + targetBox.height / 2
+    }));
+    handle.dispatchEvent(new PointerEvent("pointerup", {
+      ...pointer,
+      clientX: targetBox.left + targetBox.width / 2,
+      clientY: targetBox.top + targetBox.height / 2
+    }));
+  });
+
+  const doneColumn = page.locator('.kanban-column[data-status="Klar"]');
+  await expect(doneColumn.locator(".order-item")).toContainText("Mobil Test");
+
+  await doneColumn
+    .getByLabel("Flytta order för Mobil Test till status")
+    .selectOption("Levererad");
+  const deliveredColumn = page.locator('.kanban-column[data-status="Levererad"]');
+  await expect(deliveredColumn.locator(".order-item")).toContainText("Mobil Test");
+  expect(await readMockOrders(page)).toMatchObject([{ status: "Levererad" }]);
+});
+
 test("vald ordervy finns kvar efter omladdning", async ({ page }) => {
   await page.getByRole("button", { name: "Lista" }).click();
   await expect(page.getByRole("button", { name: "Lista" })).toHaveAttribute("aria-pressed", "true");

@@ -18,6 +18,19 @@ test("startsidan leder kunden till beställningsformuläret", async ({ page }) =
   await expect(page.locator("#customerOrderForm")).toBeVisible();
 });
 
+test("adminlänken ligger diskret längst ned på kundsidan", async ({ page }) => {
+  await page.goto("/kund.html");
+
+  const orderCard = page.locator(".customer-order-card");
+  const adminLink = page.getByRole("link", { name: "Öppna admininloggning" });
+  const orderCardBox = await orderCard.boundingBox();
+  const adminLinkBox = await adminLink.boundingBox();
+
+  await expect(adminLink).toBeVisible();
+  expect(adminLinkBox?.y).toBeGreaterThan((orderCardBox?.y || 0) + (orderCardBox?.height || 0));
+  await expect(adminLink).toHaveCSS("opacity", "0.42");
+});
+
 test("filväljaren visar valda bilder och kan ta bort dem", async ({ page }) => {
   await page.goto("/kund.html");
 
