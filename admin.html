@@ -150,12 +150,21 @@
             </div>
           </div>
 
-          <div class="shipping-estimate" aria-live="polite">
-            <div>
-              <span class="shipping-label">PostNord Sverigebrev</span>
-              <small id="shippingHint">Ange totalvikten för att beräkna frakten.</small>
+          <div class="estimate-grid">
+            <div class="shipping-estimate" aria-live="polite">
+              <div>
+                <span class="shipping-label">PostNord Sverigebrev</span>
+                <small id="shippingHint">Ange totalvikten för att beräkna frakten.</small>
+              </div>
+              <strong id="shippingEstimate">–</strong>
             </div>
-            <strong id="shippingEstimate">–</strong>
+            <div class="shipping-estimate total-estimate" aria-live="polite">
+              <div>
+                <span class="shipping-label">Pris inklusive frakt</span>
+                <small id="totalEstimateHint">Antal × pris + frakt.</small>
+              </div>
+              <output id="totalEstimate" for="quantity price weight deliveryMethod">–</output>
+            </div>
           </div>
           <p class="shipping-source">
             Frimärkt brev inrikes, priser från 1 januari 2026.
@@ -238,14 +247,6 @@
         <p class="order-notes"></p>
         <div class="order-images"></div>
         <div class="item-actions">
-          <button
-            class="mini touch-drag-handle"
-            type="button"
-            data-drag-handle
-            aria-label="Dra ordern till en annan status"
-          >
-            Flytta
-          </button>
           <button class="mini" data-action="next">Flytta vidare</button>
           <button class="mini" data-action="edit">Redigera</button>
           <button class="mini archive-action" data-action="archive">Arkivera</button>

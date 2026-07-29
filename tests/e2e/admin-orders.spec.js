@@ -36,6 +36,22 @@ test("admin kan skapa, flytta, redigera och ta bort en order", async ({ page }) 
   expect(await readMockOrders(page)).toHaveLength(0);
 });
 
+test("admin ser pris inklusive frakt innan ordern sparas", async ({ page }) => {
+  await page.getByLabel("Antal").fill("2");
+  await page.getByLabel("Pris (kr)").fill("150");
+  await page.getByLabel("Vikt inkl. emballage (g)").fill("85");
+
+  await expect(page.locator("#shippingEstimate")).toHaveText("44 kr");
+  await expect(page.locator("#totalEstimate")).toHaveText("344 kr");
+  await expect(page.locator("#totalEstimateHint")).toHaveText("2 × 150 kr + 44 kr frakt.");
+
+  await page.getByLabel("Leveranssätt").selectOption("Hämtas");
+
+  await expect(page.locator("#shippingEstimate")).toHaveText("0 kr");
+  await expect(page.locator("#totalEstimate")).toHaveText("300 kr");
+  await expect(page.locator("#totalEstimateHint")).toHaveText("2 × 150 kr, utan frakt.");
+});
+
 test("admin kan arkivera och återställa en order från det dolda arkivet", async ({ page }) => {
   await page.getByLabel("Kundens namn").fill("Alicia Arkiv");
   await page.getByLabel("Behandling eller produkt").fill("Press-on set");
@@ -69,14 +85,14 @@ test("orderstatus kan flyttas med en touchvänlig kontroll på iPhone-storlek", 
 
   const newColumn = page.locator('.kanban-column[data-status="Ny"]');
   const card = newColumn.locator(".order-item");
-  const dragHandle = card.getByRole("button", { name: "Dra ordern till en annan status" });
+  const dragArea = card.locator("header");
 
-  await expect(dragHandle).toBeVisible();
-  const handleBox = await dragHandle.boundingBox();
-  expect(handleBox?.height).toBeGreaterThanOrEqual(44);
+  await expect(dragArea).toBeVisible();
+  const dragAreaBox = await dragArea.boundingBox();
+  expect(dragAreaBox?.height).toBeGreaterThanOrEqual(44);
 
   await page.evaluate(() => {
-    const handle = document.querySelector('[data-status="Ny"] [data-drag-handle]');
+    const handle = document.querySelector('[data-status="Ny"] .order-item header');
     const target = document.querySelector('[data-status="Klar"]');
     const startBox = handle.getBoundingClientRect();
     const targetBox = target.getBoundingClientRect();

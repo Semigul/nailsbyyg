@@ -33,6 +33,8 @@ const ui = {
   weight: document.getElementById("weight"),
   shippingEstimate: document.getElementById("shippingEstimate"),
   shippingHint: document.getElementById("shippingHint"),
+  totalEstimate: document.getElementById("totalEstimate"),
+  totalEstimateHint: document.getElementById("totalEstimateHint"),
   dueDate: document.getElementById("dueDate"),
   deliveryMethod: document.getElementById("deliveryMethod"),
   status: document.getElementById("status"),
@@ -71,7 +73,10 @@ function bindEvents() {
   ui.adminLoginForm.addEventListener("submit", onAdminLogin);
   ui.signOutButton.addEventListener("click", onAdminSignOut);
   ui.form.addEventListener("submit", onSaveOrder);
+  ui.quantity.addEventListener("input", updateShippingEstimate);
+  ui.price.addEventListener("input", updateShippingEstimate);
   ui.weight.addEventListener("input", updateShippingEstimate);
+  ui.deliveryMethod.addEventListener("change", updateShippingEstimate);
   ui.resetButton.addEventListener("click", resetForm);
   ui.newOrderShortcut.addEventListener("click", onNewOrderShortcut);
   ui.statusChips.addEventListener("click", onFilterClick);
@@ -290,6 +295,7 @@ async function onSaveOrder(event) {
   const formData = new FormData(ui.form);
   const id = ui.orderId.value || createId();
   const weight = Number(formData.get("weight")) || 0;
+  const deliveryMethod = asString(formData.get("deliveryMethod"));
   const shippingRate = getPostNordLetterRate(weight);
   const existingOrder = state.orders.find((item) => item.id === id);
   const now = Date.now();
@@ -303,9 +309,9 @@ async function onSaveOrder(event) {
     quantity: Number(formData.get("quantity")),
     price: Number(formData.get("price")),
     weight,
-    shippingCost: shippingRate?.price || 0,
+    shippingCost: deliveryMethod === "Hämtas" ? 0 : shippingRate?.price || 0,
     dueDate: asString(formData.get("dueDate")),
-    deliveryMethod: asString(formData.get("deliveryMethod")),
+    deliveryMethod,
     status: asString(formData.get("status")),
     notes: asString(formData.get("notes")),
     designImagePaths: Array.isArray(existingOrder?.designImagePaths) ? existingOrder.designImagePaths : [],
@@ -535,7 +541,6 @@ function createOrderCard(order, isDraggable = false, isArchived = false) {
   const nextButton = fragment.querySelector('[data-action="next"]');
   const editButton = fragment.querySelector('[data-action="edit"]');
   const archiveButton = fragment.querySelector('[data-action="archive"]');
-  const dragHandle = fragment.querySelector("[data-drag-handle]");
   const actions = fragment.querySelector(".item-actions");
 
   card.dataset.orderId = order.id;
@@ -585,7 +590,6 @@ function createOrderCard(order, isDraggable = false, isArchived = false) {
     card.draggable = false;
     nextButton.remove();
     editButton.remove();
-    dragHandle.remove();
     archiveButton.dataset.action = "restore";
     archiveButton.textContent = "Återställ";
     archiveButton.classList.remove("archive-action");
@@ -760,7 +764,7 @@ async function onStatusSelectChange(event) {
 }
 
 function onTouchDragStart(event) {
-  const handle = event.target.closest("[data-drag-handle]");
+  const handle = event.target.closest(".order-item header");
 
   if (!handle || (event.pointerType !== "touch" && event.pointerType !== "pen")) {
     return;
@@ -879,13 +883,30 @@ function renderSummary() {
 function updateShippingEstimate() {
   const rawWeight = ui.weight.value.trim();
   const weight = Number(rawWeight);
+  const quantity = Math.max(0, Number(ui.quantity.value) || 0);
+  const unitPrice = Math.max(0, Number(ui.price.value) || 0);
+  const productTotal = quantity * unitPrice;
   const shippingRate = getPostNordLetterRate(weight);
+  const isPickup = ui.deliveryMethod.value === "Hämtas";
 
   ui.shippingEstimate.classList.remove("is-error");
+  ui.totalEstimate.classList.remove("is-error");
+
+  if (isPickup) {
+    ui.shippingEstimate.textContent = "0 kr";
+    ui.shippingHint.textContent = "Ingen frakt vid hämtning.";
+    ui.totalEstimate.value = `${productTotal} kr`;
+    ui.totalEstimate.textContent = `${productTotal} kr`;
+    ui.totalEstimateHint.textContent = `${quantity} × ${unitPrice} kr, utan frakt.`;
+    return;
+  }
 
   if (!rawWeight || weight <= 0) {
     ui.shippingEstimate.textContent = "–";
     ui.shippingHint.textContent = "Ange totalvikten för att beräkna frakten.";
+    ui.totalEstimate.value = "–";
+    ui.totalEstimate.textContent = "–";
+    ui.totalEstimateHint.textContent = "Ange vikten för att visa pris inklusive frakt.";
     return;
   }
 
@@ -893,11 +914,19 @@ function updateShippingEstimate() {
     ui.shippingEstimate.textContent = "Över 2 kg";
     ui.shippingEstimate.classList.add("is-error");
     ui.shippingHint.textContent = "Sverigebrev kan väga högst 2 000 gram.";
+    ui.totalEstimate.value = "–";
+    ui.totalEstimate.textContent = "–";
+    ui.totalEstimate.classList.add("is-error");
+    ui.totalEstimateHint.textContent = "Välj ett annat fraktsätt för att räkna ut totalen.";
     return;
   }
 
   ui.shippingEstimate.textContent = `${shippingRate.price} kr`;
   ui.shippingHint.textContent = `Frimärkt brev upp till ${formatWeightLimit(shippingRate.maxWeight)}.`;
+  ui.totalEstimate.value = `${productTotal + shippingRate.price} kr`;
+  ui.totalEstimate.textContent = `${productTotal + shippingRate.price} kr`;
+  ui.totalEstimateHint.textContent =
+    `${quantity} × ${unitPrice} kr + ${shippingRate.price} kr frakt.`;
 }
 
 function visibleOrders() {

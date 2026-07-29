@@ -424,16 +424,27 @@ textarea {
   min-width: 0;
 }
 
+.estimate-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin-top: 0.85rem;
+}
+
 .shipping-estimate {
   display: flex;
   gap: 1rem;
   align-items: center;
   justify-content: space-between;
-  margin-top: 0.85rem;
   padding: 0.75rem 0.85rem;
   border: 1px solid rgba(248, 108, 155, 0.3);
   border-radius: 1rem;
   background: var(--surface-blush);
+}
+
+.total-estimate {
+  border-color: rgba(85, 153, 106, 0.28);
+  background: var(--success-bg);
 }
 
 .shipping-label {
@@ -451,14 +462,21 @@ textarea {
   line-height: 1.4;
 }
 
-#shippingEstimate {
+#shippingEstimate,
+#totalEstimate {
   flex: 0 0 auto;
   color: var(--pink-strong);
   font-size: 1.15rem;
+  font-weight: 800;
   white-space: nowrap;
 }
 
-#shippingEstimate.is-error {
+#totalEstimate {
+  color: var(--success-ink);
+}
+
+#shippingEstimate.is-error,
+#totalEstimate.is-error {
   color: #9e2949;
   font-size: 0.92rem;
 }
@@ -818,7 +836,6 @@ textarea {
   color: var(--muted);
 }
 
-.touch-drag-handle,
 .mobile-status-control {
   display: none;
 }
@@ -1295,6 +1312,10 @@ textarea {
     gap: 0.7rem;
   }
 
+  .estimate-grid {
+    grid-template-columns: 1fr;
+  }
+
   .hero {
     gap: 0.75rem;
     padding: 0.85rem;
@@ -1436,19 +1457,15 @@ textarea {
     grid-template-columns: 1fr 1fr;
   }
 
-  .touch-drag-handle {
-    display: block;
-    grid-column: 1 / -1;
-    min-height: 48px;
-    border-color: rgba(248, 108, 155, 0.38);
-    background: var(--surface-blush);
-    color: #9d3159;
+  .kanban-board .order-item header {
+    min-height: 44px;
+    padding-right: 0.25rem;
+    cursor: grab;
     touch-action: none;
   }
 
-  .touch-drag-handle::before {
-    margin-right: 0.35rem;
-    content: "↕";
+  .kanban-board .order-item.is-dragging header {
+    cursor: grabbing;
   }
 
   .mobile-status-control {
