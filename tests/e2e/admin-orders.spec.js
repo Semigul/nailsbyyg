@@ -78,3 +78,20 @@ test("logga ut rensar den sparade sessionen", async ({ page }) => {
   await expect(page.locator("#adminAuthCard")).toBeVisible();
   await expect(page.getByRole("button", { name: "Logga in" })).toBeVisible();
 });
+
+test("utan håll mig inloggad används bara webbläsarsessionen", async ({ page }) => {
+  await page.getByRole("button", { name: "Logga ut" }).click();
+  await page.getByLabel("Håll mig inloggad").uncheck();
+  await page.getByLabel("E-post", { exact: true }).fill("admin@example.com");
+  await page.getByLabel("Lösenord").fill("hemligt123");
+  await page.getByRole("button", { name: "Logga in" }).click();
+  await expect(page.locator("#connectionBadge")).toHaveText("Firebase synkad");
+
+  const storedSession = await page.evaluate(() => ({
+    local: localStorage.getItem("nailsbyyg.e2e.auth.local"),
+    session: sessionStorage.getItem("nailsbyyg.e2e.auth.session")
+  }));
+
+  expect(storedSession.local).toBeNull();
+  expect(storedSession.session).toContain("admin-e2e");
+});
