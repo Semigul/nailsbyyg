@@ -744,11 +744,34 @@ textarea {
 .order-meta,
 .order-contact,
 .order-address,
-.order-notes {
+.order-notes,
+.order-payment {
   margin: 0.55rem 0;
   color: var(--muted);
   font-size: 0.86rem;
   line-height: 1.5;
+}
+
+.order-payment {
+  padding: 0.5rem 0.65rem;
+  border-radius: 0.65rem;
+  background: #fff5d9;
+  color: #785513;
+  font-weight: 800;
+}
+
+.order-item.is-marketplace-order {
+  border-color: rgba(217, 154, 54, 0.4);
+}
+
+.order-marketplace-thumb {
+  display: block;
+  width: 4.5rem;
+  aspect-ratio: 1;
+  margin: 0.55rem 0;
+  border: 1px solid var(--line);
+  border-radius: 0.7rem;
+  object-fit: cover;
 }
 
 .order-contact,
@@ -1023,6 +1046,160 @@ textarea {
 
 .customer-order-card {
   background: rgba(255, 255, 255, 0.95);
+}
+
+.marketplace-card {
+  margin-bottom: 0.85rem;
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.marketplace-card h2 {
+  margin: 0.2rem 0 0.45rem;
+}
+
+.marketplace-intro {
+  margin: 0 0 1rem;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.marketplace-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: 0.8rem;
+}
+
+.marketplace-item {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(71, 39, 53, 0.06);
+}
+
+.marketplace-item > img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: var(--surface-blush);
+  object-fit: cover;
+}
+
+.marketplace-item-body {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.85rem;
+}
+
+.marketplace-item h3,
+.marketplace-item p {
+  margin: 0;
+}
+
+.marketplace-item p,
+.marketplace-item small {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.marketplace-item strong {
+  color: var(--pink-strong);
+  font-size: 1.15rem;
+}
+
+.marketplace-buy {
+  margin-top: 0.25rem;
+}
+
+.marketplace-order-form {
+  padding-top: 0.5rem;
+}
+
+.marketplace-checkout-heading {
+  display: grid;
+  grid-template-columns: 5rem minmax(0, 1fr);
+  gap: 0.8rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.marketplace-checkout-heading img {
+  width: 5rem;
+  aspect-ratio: 1;
+  border-radius: 0.8rem;
+  object-fit: cover;
+}
+
+.marketplace-checkout-heading h3 {
+  margin: 0.15rem 0 0.25rem;
+}
+
+.marketplace-swish-note {
+  margin: 0.85rem 0;
+  padding: 0.75rem;
+  border-radius: 0.8rem;
+  background: #fff5d9;
+  color: #785513;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.marketplace-swish-note strong {
+  display: block;
+}
+
+.marketplace-admin-card {
+  grid-column: 1 / -1;
+}
+
+.marketplace-admin-preview {
+  display: block;
+  width: min(10rem, 100%);
+  aspect-ratio: 4 / 3;
+  margin-top: 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 0.8rem;
+  object-fit: cover;
+}
+
+.marketplace-admin-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+  gap: 0.7rem;
+  margin-top: 1.25rem;
+}
+
+.marketplace-admin-item {
+  display: grid;
+  grid-template-columns: 5rem minmax(0, 1fr);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  background: #fff;
+}
+
+.marketplace-admin-item > img {
+  width: 5rem;
+  height: 100%;
+  min-height: 7.5rem;
+  object-fit: cover;
+}
+
+.marketplace-admin-item-body {
+  min-width: 0;
+  padding: 0.7rem;
+}
+
+.marketplace-admin-item h3,
+.marketplace-admin-item p {
+  margin: 0 0 0.5rem;
+  overflow-wrap: anywhere;
+}
+
+.marketplace-admin-item p {
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.45;
 }
 
 .connection-notice {

@@ -1,0 +1,94 @@
+import { expect, test } from "@playwright/test";
+import {
+  installFirebaseMock,
+  readMockMarketplaceItems,
+  readMockOrders
+} from "./support/firebase-mock.js";
+
+const ONE_PIXEL_PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9ZfGQAAAAASUVORK5CYII=",
+  "base64"
+);
+
+test.beforeEach(async ({ page }) => {
+  await installFirebaseMock(page);
+  await page.route("https://api.cloudinary.com/**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        secure_url: "https://res.cloudinary.com/e2e/image/upload/v1/marketplace/skridskor.png",
+        public_id: "marketplace/skridskor"
+      })
+    });
+  });
+});
+
+test("marknadsplatsköp reserveras, blir en ny order och hanteras med Swish", async ({ page }) => {
+  await page.goto("/admin.html");
+  await page.getByLabel("E-post", { exact: true }).fill("admin@example.com");
+  await page.getByLabel("Lösenord").fill("hemligt123");
+  await page.getByRole("button", { name: "Logga in" }).click();
+  await expect(page.locator("#connectionBadge")).toHaveText("Firebase synkad");
+
+  const itemForm = page.locator("#marketplaceItemForm");
+  await itemForm.getByLabel("Namn på varan").fill("Rosa skridskor");
+  await itemForm.getByLabel("Beskrivning").fill("Fina och använda några gånger.");
+  await itemForm.getByLabel("Pris (kr)").fill("150");
+  await itemForm.getByLabel("Frakt (kr)").fill("59");
+  await itemForm.getByLabel("Bild på varan").setInputFiles({
+    name: "skridskor.png",
+    mimeType: "image/png",
+    buffer: ONE_PIXEL_PNG
+  });
+  await itemForm.getByRole("button", { name: "Publicera vara" }).click();
+
+  const adminItem = page.locator(".marketplace-admin-item");
+  await expect(adminItem).toContainText("Rosa skridskor");
+  await expect(adminItem).toContainText("Tillgänglig");
+
+  await page.goto("/kund.html");
+  const customerItem = page.locator(".marketplace-item");
+  await expect(customerItem).toContainText("Rosa skridskor");
+  await customerItem.getByRole("button", { name: "Beställ" }).click();
+
+  const checkout = page.locator("#marketplaceOrderForm");
+  await checkout.getByLabel("Namn").fill("Maja Marknad");
+  await checkout.getByLabel("Telefon eller e-post").fill("maja@example.com");
+  await checkout.getByLabel("Leveranssätt").selectOption("Hämtas");
+  await checkout.getByRole("button", { name: "Reservera och beställ" }).click();
+
+  await expect(page.locator("#marketplaceSuccess")).toBeVisible();
+  await expect(page.locator("#marketplaceSwishInstructions")).toContainText("0701234567");
+
+  expect(await readMockOrders(page)).toMatchObject([{
+    customer: "Maja Marknad",
+    product: "Rosa skridskor",
+    status: "Ny",
+    orderType: "marketplace",
+    paymentStatus: "Väntar på Swish",
+    price: 150,
+    shippingCost: 0
+  }]);
+  expect(await readMockMarketplaceItems(page)).toMatchObject([{
+    title: "Rosa skridskor",
+    status: "reserved"
+  }]);
+
+  await page.goto("/admin.html");
+  const newOrder = page.locator('.kanban-column[data-status="Ny"] .order-item');
+  await expect(newOrder).toContainText("Marknadsplats • Betalning: Väntar på Swish");
+  await newOrder.getByRole("button", { name: "Redigera" }).click();
+  await page.getByLabel("Betalningsstatus").selectOption("Betald");
+  await page.getByLabel("Swish-referens").fill("MAJA-150");
+  await page.getByRole("button", { name: "Spara order" }).click();
+
+  await expect(newOrder).toContainText("Betalning: Betald");
+  await expect(newOrder).toContainText("Swish: MAJA-150");
+  expect(await readMockMarketplaceItems(page)).toMatchObject([{ status: "sold" }]);
+
+  await newOrder.getByRole("button", { name: "Redigera" }).click();
+  await page.getByLabel("Betalningsstatus").selectOption("Återbetald");
+  await page.getByRole("button", { name: "Spara order" }).click();
+  expect(await readMockMarketplaceItems(page)).toMatchObject([{ status: "available" }]);
+});

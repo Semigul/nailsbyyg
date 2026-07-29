@@ -16,13 +16,31 @@ const ui = {
   dueDate: document.getElementById("customerDueDate"),
   designImages: document.getElementById("customerDesignImages"),
   fileStatus: document.getElementById("customerFileStatus"),
-  imagePreview: document.getElementById("customerImagePreview")
+  imagePreview: document.getElementById("customerImagePreview"),
+  marketplaceStatus: document.getElementById("marketplaceStatus"),
+  marketplaceGrid: document.getElementById("marketplaceGrid"),
+  marketplaceForm: document.getElementById("marketplaceOrderForm"),
+  marketplaceItemId: document.getElementById("marketplaceItemId"),
+  marketplaceCheckoutImage: document.getElementById("marketplaceCheckoutImage"),
+  marketplaceCheckoutTitle: document.getElementById("marketplaceCheckoutTitle"),
+  marketplaceCheckoutPrice: document.getElementById("marketplaceCheckoutPrice"),
+  marketplaceDelivery: document.getElementById("marketplaceDelivery"),
+  marketplaceAddressGroup: document.getElementById("marketplaceAddressGroup"),
+  marketplaceAddress: document.getElementById("marketplaceAddress"),
+  marketplaceMessage: document.getElementById("marketplaceFormMessage"),
+  marketplaceSuccess: document.getElementById("marketplaceSuccess"),
+  marketplaceSwishInstructions: document.getElementById("marketplaceSwishInstructions"),
+  marketplaceOrderReference: document.getElementById("marketplaceOrderReference"),
+  cancelMarketplaceOrder: document.getElementById("cancelMarketplaceOrder"),
+  closeMarketplaceSuccess: document.getElementById("closeMarketplaceSuccess")
 };
 
 let firebase;
 let customerUser;
 let previewUrls = [];
 let selectedDesignFiles = [];
+let marketplaceItems = [];
+let unsubscribeMarketplace;
 
 init();
 
@@ -33,7 +51,13 @@ async function init() {
   ui.deliveryMethod.addEventListener("change", updateAddressRequirement);
   ui.designImages.addEventListener("change", onDesignImagesChange);
   ui.imagePreview.addEventListener("click", onPreviewAction);
+  ui.marketplaceGrid.addEventListener("click", onMarketplaceAction);
+  ui.marketplaceForm.addEventListener("submit", onSubmitMarketplaceOrder);
+  ui.marketplaceDelivery.addEventListener("change", updateMarketplaceAddressRequirement);
+  ui.cancelMarketplaceOrder.addEventListener("click", closeMarketplaceCheckout);
+  ui.closeMarketplaceSuccess.addEventListener("click", closeMarketplaceCheckout);
   updateAddressRequirement();
+  updateMarketplaceAddressRequirement();
 
   try {
     firebase = await getFirebaseServices();
@@ -46,12 +70,225 @@ async function init() {
 
     ui.connectionStatus.hidden = true;
     ui.form.hidden = false;
+    subscribeToMarketplace();
   } catch (error) {
     console.error(error);
     ui.connectionStatus.classList.add("is-error");
     ui.connectionStatus.textContent =
       "Beställningssystemet kunde inte ansluta. Försök igen senare eller kontakta Nailsbyy.g.";
   }
+}
+
+function subscribeToMarketplace() {
+  unsubscribeMarketplace?.();
+  unsubscribeMarketplace = firebase.firestoreApi.onSnapshot(
+    firebase.firestoreApi.collection(firebase.db, "marketplaceItems"),
+    (snapshot) => {
+      marketplaceItems = snapshot.docs
+        .map((item) => ({ id: item.id, ...item.data() }))
+        .filter((item) => item.status === "available")
+        .sort((left, right) => Number(right.createdAt) - Number(left.createdAt));
+      renderMarketplace();
+    },
+    (error) => {
+      console.error(error);
+      ui.marketplaceStatus.classList.add("is-error");
+      ui.marketplaceStatus.textContent = "Marknadsplatsen kunde inte hämtas just nu.";
+    }
+  );
+}
+
+function renderMarketplace() {
+  ui.marketplaceGrid.innerHTML = "";
+  ui.marketplaceStatus.classList.remove("is-error");
+
+  if (marketplaceItems.length === 0) {
+    ui.marketplaceGrid.hidden = true;
+    ui.marketplaceStatus.hidden = false;
+    ui.marketplaceStatus.textContent = "Det finns inga saker till salu just nu. Titta gärna in igen!";
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+
+  marketplaceItems.forEach((item) => {
+    const card = document.createElement("article");
+    const image = document.createElement("img");
+    const body = document.createElement("div");
+    const title = document.createElement("h3");
+    const description = document.createElement("p");
+    const price = document.createElement("strong");
+    const shipping = document.createElement("small");
+    const button = document.createElement("button");
+
+    card.className = "marketplace-item";
+    card.dataset.itemId = item.id;
+    image.src = item.imageUrl;
+    image.alt = item.title;
+    image.loading = "lazy";
+    body.className = "marketplace-item-body";
+    title.textContent = item.title;
+    description.textContent = item.description;
+    price.textContent = `${Number(item.price) || 0} kr`;
+    shipping.textContent = Number(item.shippingCost) > 0
+      ? `Frakt ${Number(item.shippingCost)} kr tillkommer om den postas`
+      : "Ingen fraktkostnad";
+    button.type = "button";
+    button.className = "primary marketplace-buy";
+    button.dataset.action = "buy-marketplace-item";
+    button.textContent = "Beställ";
+
+    body.append(title, description, price, shipping, button);
+    card.append(image, body);
+    fragment.append(card);
+  });
+
+  ui.marketplaceGrid.append(fragment);
+  ui.marketplaceGrid.hidden = false;
+  ui.marketplaceStatus.hidden = true;
+}
+
+function onMarketplaceAction(event) {
+  const button = event.target.closest('[data-action="buy-marketplace-item"]');
+  const card = button?.closest(".marketplace-item");
+  const item = marketplaceItems.find((entry) => entry.id === card?.dataset.itemId);
+
+  if (!item) {
+    return;
+  }
+
+  ui.marketplaceItemId.value = item.id;
+  ui.marketplaceCheckoutTitle.textContent = item.title;
+  ui.marketplaceCheckoutPrice.textContent =
+    `${Number(item.price) || 0} kr + eventuell frakt`;
+  ui.marketplaceCheckoutImage.src = item.imageUrl;
+  ui.marketplaceCheckoutImage.alt = item.title;
+  ui.marketplaceGrid.hidden = true;
+  ui.marketplaceStatus.hidden = true;
+  ui.marketplaceSuccess.hidden = true;
+  ui.marketplaceForm.hidden = false;
+  ui.marketplaceMessage.textContent = "";
+  ui.marketplaceForm.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function onSubmitMarketplaceOrder(event) {
+  event.preventDefault();
+
+  if (!firebase || !customerUser) {
+    return;
+  }
+
+  const formData = new FormData(ui.marketplaceForm);
+  const itemId = clean(formData.get("marketplaceItemId"));
+  const item = marketplaceItems.find((entry) => entry.id === itemId);
+
+  if (!item) {
+    ui.marketplaceMessage.textContent = "Varan är inte längre tillgänglig.";
+    return;
+  }
+
+  const submitButton = ui.marketplaceForm.querySelector('button[type="submit"]');
+  const orderReference = firebase.firestoreApi.doc(firebase.firestoreApi.collection(firebase.db, "orders"));
+  const itemReference = firebase.firestoreApi.doc(firebase.db, "marketplaceItems", itemId);
+  const now = Date.now();
+  const deliveryMethod = clean(formData.get("deliveryMethod"));
+  const shippingCost = deliveryMethod === "Hämtas" ? 0 : Number(item.shippingCost) || 0;
+  const dueDate = new Date(now + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const order = {
+    customer: clean(formData.get("customer")),
+    contact: clean(formData.get("contact")),
+    product: item.title,
+    quantity: 1,
+    deliveryMethod,
+    address: clean(formData.get("address")),
+    dueDate,
+    notes: "",
+    price: Number(item.price) || 0,
+    weight: 0,
+    shippingCost,
+    status: "Ny",
+    designImagePaths: [],
+    approvedDesignImageUrls: [],
+    moderationStatus: "approved",
+    moderationReason: "",
+    moderationUpdatedAt: now,
+    source: "marketplace",
+    orderType: "marketplace",
+    marketplaceItemId: item.id,
+    marketplaceImageUrl: item.imageUrl,
+    paymentStatus: "Väntar på Swish",
+    swishReference: "",
+    customerId: customerUser.uid,
+    createdAt: now,
+    updatedAt: now
+  };
+
+  submitButton.disabled = true;
+  submitButton.textContent = "Reserverar…";
+  ui.marketplaceMessage.textContent = "";
+
+  try {
+    await firebase.firestoreApi.runTransaction(firebase.db, async (transaction) => {
+      const itemSnapshot = await transaction.get(itemReference);
+      const currentItem = itemSnapshot.data();
+
+      if (!itemSnapshot.exists() || currentItem?.status !== "available") {
+        throw new Error("Varan hann tyvärr reserveras av någon annan.");
+      }
+
+      transaction.set(orderReference, order);
+      transaction.set(itemReference, {
+        ...currentItem,
+        status: "reserved",
+        reservedBy: customerUser.uid,
+        reservedOrderId: orderReference.id,
+        updatedAt: now
+      });
+    });
+
+    ui.marketplaceOrderReference.textContent =
+      `Referens: ${orderReference.id.slice(0, 8).toUpperCase()}`;
+    ui.marketplaceSwishInstructions.textContent = getSwishInstructions();
+    ui.marketplaceForm.hidden = true;
+    ui.marketplaceSuccess.hidden = false;
+    ui.marketplaceSuccess.scrollIntoView({ behavior: "smooth", block: "center" });
+  } catch (error) {
+    console.error(error);
+    ui.marketplaceMessage.textContent = toUserError(error);
+  } finally {
+    submitButton.disabled = false;
+    submitButton.textContent = "Reservera och beställ";
+  }
+}
+
+function updateMarketplaceAddressRequirement() {
+  const shouldPost = ui.marketplaceDelivery.value === "Postas";
+  ui.marketplaceAddressGroup.hidden = !shouldPost;
+  ui.marketplaceAddress.required = shouldPost;
+
+  if (!shouldPost) {
+    ui.marketplaceAddress.value = "";
+  }
+}
+
+function closeMarketplaceCheckout() {
+  ui.marketplaceForm.reset();
+  ui.marketplaceItemId.value = "";
+  ui.marketplaceMessage.textContent = "";
+  ui.marketplaceForm.hidden = true;
+  ui.marketplaceSuccess.hidden = true;
+  updateMarketplaceAddressRequirement();
+  renderMarketplace();
+}
+
+function getSwishInstructions() {
+  const swishNumber = clean(window.MARKETPLACE_CONFIG?.swishNumber);
+
+  if (swishNumber) {
+    return `Swisha totalsumman till ${swishNumber} och skriv orderreferensen som meddelande.`;
+  }
+
+  return "Nailsbyy.g skickar Swish-nummer och totalsumma till kontaktuppgiften du fyllde i.";
 }
 
 function waitForInitialAuthUser(auth, authApi) {
@@ -104,6 +341,11 @@ async function onSubmitOrder(event) {
     moderationReason: "",
     moderationUpdatedAt: now,
     source: "customer",
+    orderType: "custom",
+    marketplaceItemId: "",
+    marketplaceImageUrl: "",
+    paymentStatus: "Ej aktuell",
+    swishReference: "",
     customerId: customerUser.uid,
     createdAt: now,
     updatedAt: now

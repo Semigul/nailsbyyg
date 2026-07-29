@@ -194,6 +194,28 @@
             </div>
           </div>
 
+          <div class="two-col">
+            <div>
+              <label for="paymentStatus">Betalningsstatus</label>
+              <select id="paymentStatus" name="paymentStatus" required>
+                <option value="Ej aktuell">Ej aktuell</option>
+                <option value="Väntar på Swish">Väntar på Swish</option>
+                <option value="Betald">Betald</option>
+                <option value="Återbetald">Återbetald</option>
+              </select>
+            </div>
+            <div>
+              <label for="swishReference">Swish-referens</label>
+              <input
+                id="swishReference"
+                name="swishReference"
+                type="text"
+                maxlength="60"
+                placeholder="Till exempel betalningens meddelande"
+              />
+            </div>
+          </div>
+
           <label for="notes">Anteckning (valfritt)</label>
           <textarea
             id="notes"
@@ -224,6 +246,68 @@
         </div>
         <div id="kanbanBoard" class="kanban-board" aria-label="Orderflöde som Kanban-board"></div>
         <div id="ordersList" class="orders-list" hidden></div>
+      </section>
+
+      <section class="card marketplace-admin-card admin-content" hidden>
+        <div class="orders-heading">
+          <div>
+            <p class="section-kicker">Loppishörnan</p>
+            <h2>Begagnade saker</h2>
+          </div>
+        </div>
+        <form id="marketplaceItemForm">
+          <input type="hidden" id="marketplaceAdminItemId" />
+
+          <label for="marketplaceAdminTitle">Namn på varan</label>
+          <input id="marketplaceAdminTitle" name="title" type="text" maxlength="80" required />
+
+          <label for="marketplaceAdminDescription">Beskrivning</label>
+          <textarea
+            id="marketplaceAdminDescription"
+            name="description"
+            rows="4"
+            maxlength="500"
+            required
+          ></textarea>
+
+          <div class="two-col">
+            <div>
+              <label for="marketplaceAdminPrice">Pris (kr)</label>
+              <input id="marketplaceAdminPrice" name="price" type="number" min="0" step="1" required />
+            </div>
+            <div>
+              <label for="marketplaceAdminShipping">Frakt (kr)</label>
+              <input
+                id="marketplaceAdminShipping"
+                name="shippingCost"
+                type="number"
+                min="0"
+                step="1"
+                value="0"
+                required
+              />
+            </div>
+          </div>
+
+          <label for="marketplaceAdminImage">Bild på varan</label>
+          <input id="marketplaceAdminImage" name="image" type="file" accept="image/*" />
+          <p class="upload-help">Bilden lagras i Cloudinary. Max 5 MB.</p>
+          <img id="marketplaceAdminImagePreview" class="marketplace-admin-preview" alt="" hidden />
+
+          <label for="marketplaceAdminStatus">Status</label>
+          <select id="marketplaceAdminStatus" name="itemStatus" required>
+            <option value="available">Tillgänglig</option>
+            <option value="reserved">Reserverad</option>
+            <option value="sold">Såld</option>
+          </select>
+
+          <div class="actions">
+            <button type="submit" class="primary" id="marketplaceAdminSave">Publicera vara</button>
+            <button type="button" class="ghost" id="marketplaceAdminReset">Rensa</button>
+          </div>
+          <p id="marketplaceAdminMessage" class="form-message" aria-live="polite"></p>
+        </form>
+        <div id="marketplaceAdminList" class="marketplace-admin-list" aria-live="polite"></div>
       </section>
 
       <details class="archive-panel admin-content" id="archivePanel" hidden>

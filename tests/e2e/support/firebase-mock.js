@@ -117,9 +117,21 @@ const FIREBASE_MODULES = {
   `,
   "firebase-firestore.js": `
     const state = globalThis.__NAILSBYYG_E2E_FIREBASE__;
+    const DATABASE_KEY = "nailsbyyg.e2e.database";
 
-    function orderSnapshot() {
-      const docs = Object.entries(state.orders)
+    function persistDatabase() {
+      sessionStorage.setItem(DATABASE_KEY, JSON.stringify({
+        orders: state.orders,
+        marketplaceItems: state.marketplaceItems
+      }));
+    }
+
+    function collectionData(name) {
+      return name === "marketplaceItems" ? state.marketplaceItems : state.orders;
+    }
+
+    function collectionSnapshot(name) {
+      const docs = Object.entries(collectionData(name))
         .sort(([, left], [, right]) => (right.updatedAt || 0) - (left.updatedAt || 0))
         .map(([id, value]) => ({
           id,
@@ -131,10 +143,10 @@ const FIREBASE_MODULES = {
       return { docs };
     }
 
-    function notifyOrders() {
-      const snapshot = orderSnapshot();
+    function notifyCollection(name) {
+      const snapshot = collectionSnapshot(name);
       queueMicrotask(() => {
-        state.orderListeners.forEach((listener) => listener(snapshot));
+        (state.listeners[name] || []).forEach((listener) => listener(snapshot));
       });
     }
 
@@ -148,7 +160,8 @@ const FIREBASE_MODULES = {
 
     export function doc(source, ...segments) {
       if (source?.kind === "collection") {
-        const id = segments[0] || "order-e2e-" + state.nextOrderId++;
+        const prefix = source.name === "marketplaceItems" ? "item" : "order";
+        const id = segments[0] || prefix + "-e2e-" + state.nextDocumentId++;
         return { kind: "document", collection: source.name, id };
       }
 
@@ -171,7 +184,7 @@ const FIREBASE_MODULES = {
         };
       }
 
-      const value = state.orders[reference.id];
+      const value = collectionData(reference.collection)[reference.id];
       return {
         exists() {
           return Boolean(value);
@@ -190,25 +203,61 @@ const FIREBASE_MODULES = {
       return collectionReference;
     }
 
-    export function onSnapshot(_query, listener) {
-      state.orderListeners.push(listener);
-      queueMicrotask(() => listener(orderSnapshot()));
+    export function onSnapshot(queryReference, listener) {
+      const name = queryReference.name;
+      state.listeners[name] = state.listeners[name] || [];
+      state.listeners[name].push(listener);
+      queueMicrotask(() => listener(collectionSnapshot(name)));
       return () => {
-        state.orderListeners = state.orderListeners.filter((item) => item !== listener);
+        state.listeners[name] = state.listeners[name].filter((item) => item !== listener);
       };
     }
 
     export async function setDoc(reference, value, options = {}) {
-      const current = state.orders[reference.id] || {};
-      state.orders[reference.id] = options.merge
+      const documents = collectionData(reference.collection);
+      const current = documents[reference.id] || {};
+      documents[reference.id] = options.merge
         ? { ...current, ...value }
         : { ...value };
-      notifyOrders();
+      persistDatabase();
+      notifyCollection(reference.collection);
     }
 
     export async function deleteDoc(reference) {
-      delete state.orders[reference.id];
-      notifyOrders();
+      delete collectionData(reference.collection)[reference.id];
+      persistDatabase();
+      notifyCollection(reference.collection);
+    }
+
+    export async function runTransaction(_db, callback) {
+      const writes = [];
+      const transaction = {
+        async get(reference) {
+          const value = collectionData(reference.collection)[reference.id];
+          return {
+            exists() {
+              return Boolean(value);
+            },
+            data() {
+              return value ? { ...value } : undefined;
+            }
+          };
+        },
+        set(reference, value, options = {}) {
+          writes.push({ reference, value, options });
+        }
+      };
+
+      const result = await callback(transaction);
+      writes.forEach(({ reference, value, options }) => {
+        const documents = collectionData(reference.collection);
+        const current = documents[reference.id] || {};
+        documents[reference.id] = options.merge ? { ...current, ...value } : { ...value };
+      });
+      persistDatabase();
+      [...new Set(writes.map(({ reference }) => reference.collection))]
+        .forEach((name) => notifyCollection(name));
+      return result;
     }
   `,
   "firebase-storage.js": `
@@ -221,11 +270,27 @@ const FIREBASE_MODULES = {
 
 export async function installFirebaseMock(page) {
   await page.addInitScript(() => {
+    let storedDatabase = {};
+
+    try {
+      storedDatabase = JSON.parse(sessionStorage.getItem("nailsbyyg.e2e.database") || "{}");
+    } catch {
+      storedDatabase = {};
+    }
+
     globalThis.FIREBASE_CONFIG = {
       apiKey: "e2e-api-key",
       authDomain: "e2e.local",
       projectId: "e2e-project",
       appId: "e2e-app"
+    };
+    globalThis.CLOUDINARY_CONFIG = {
+      cloudName: "e2e-cloud",
+      uploadPreset: "e2e-preset",
+      folder: "nailsbyyg-orders"
+    };
+    globalThis.MARKETPLACE_CONFIG = {
+      swishNumber: "0701234567"
     };
 
     globalThis.__NAILSBYYG_E2E_FIREBASE__ = {
@@ -236,9 +301,10 @@ export async function installFirebaseMock(page) {
       persistence: "local",
       db: {},
       storage: {},
-      orders: {},
-      orderListeners: [],
-      nextOrderId: 1
+      orders: storedDatabase.orders || {},
+      marketplaceItems: storedDatabase.marketplaceItems || {},
+      listeners: {},
+      nextDocumentId: 1
     };
   });
 
@@ -264,4 +330,8 @@ export async function installFirebaseMock(page) {
 
 export async function readMockOrders(page) {
   return page.evaluate(() => Object.values(globalThis.__NAILSBYYG_E2E_FIREBASE__.orders));
+}
+
+export async function readMockMarketplaceItems(page) {
+  return page.evaluate(() => Object.values(globalThis.__NAILSBYYG_E2E_FIREBASE__.marketplaceItems));
 }

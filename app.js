@@ -8,6 +8,7 @@ const filterLabels = ["Alla", ...STATUS_FLOW];
 
 const state = {
   orders: [],
+  marketplaceItems: [],
   currentFilter: "Alla",
   currentView: loadView()
 };
@@ -38,6 +39,8 @@ const ui = {
   dueDate: document.getElementById("dueDate"),
   deliveryMethod: document.getElementById("deliveryMethod"),
   status: document.getElementById("status"),
+  paymentStatus: document.getElementById("paymentStatus"),
+  swishReference: document.getElementById("swishReference"),
   notes: document.getElementById("notes"),
   resetButton: document.getElementById("resetButton"),
   newOrderShortcut: document.getElementById("newOrderShortcut"),
@@ -52,11 +55,25 @@ const ui = {
   totalCount: document.getElementById("totalCount"),
   activeCount: document.getElementById("activeCount"),
   doneCount: document.getElementById("doneCount"),
-  orderTemplate: document.getElementById("orderTemplate")
+  orderTemplate: document.getElementById("orderTemplate"),
+  marketplaceForm: document.getElementById("marketplaceItemForm"),
+  marketplaceItemId: document.getElementById("marketplaceAdminItemId"),
+  marketplaceTitle: document.getElementById("marketplaceAdminTitle"),
+  marketplaceDescription: document.getElementById("marketplaceAdminDescription"),
+  marketplacePrice: document.getElementById("marketplaceAdminPrice"),
+  marketplaceShipping: document.getElementById("marketplaceAdminShipping"),
+  marketplaceImage: document.getElementById("marketplaceAdminImage"),
+  marketplaceImagePreview: document.getElementById("marketplaceAdminImagePreview"),
+  marketplaceStatus: document.getElementById("marketplaceAdminStatus"),
+  marketplaceSave: document.getElementById("marketplaceAdminSave"),
+  marketplaceReset: document.getElementById("marketplaceAdminReset"),
+  marketplaceMessage: document.getElementById("marketplaceAdminMessage"),
+  marketplaceList: document.getElementById("marketplaceAdminList")
 };
 
 let firebase;
 let unsubscribeOrders;
+let unsubscribeMarketplace;
 let touchDrag;
 
 init();
@@ -95,6 +112,10 @@ function bindEvents() {
   ui.kanbanBoard.addEventListener("pointerup", onTouchDragEnd);
   ui.kanbanBoard.addEventListener("pointercancel", onTouchDragEnd);
   ui.viewButtons.forEach((button) => button.addEventListener("click", onViewChange));
+  ui.marketplaceForm.addEventListener("submit", onSaveMarketplaceItem);
+  ui.marketplaceReset.addEventListener("click", resetMarketplaceForm);
+  ui.marketplaceImage.addEventListener("change", previewMarketplaceImage);
+  ui.marketplaceList.addEventListener("click", onMarketplaceAdminAction);
 }
 
 async function connectAdmin() {
@@ -110,6 +131,7 @@ async function connectAdmin() {
         }
 
         stopOrderSubscription();
+        stopMarketplaceSubscription();
         showAdmin(false);
         return;
       }
@@ -185,6 +207,7 @@ async function verifyAndOpenAdmin(user) {
     showAdmin(true);
     await migrateLegacyOrders();
     subscribeToOrders();
+    subscribeToMarketplace();
   } catch (error) {
     console.error(error);
     ui.adminAuthMessage.textContent =
@@ -201,7 +224,9 @@ function showAdmin(isVisible) {
 
   if (!isVisible) {
     state.orders = [];
+    state.marketplaceItems = [];
     render();
+    renderMarketplaceAdmin();
   }
 }
 
@@ -234,6 +259,30 @@ function stopOrderSubscription() {
   if (unsubscribeOrders) {
     unsubscribeOrders();
     unsubscribeOrders = undefined;
+  }
+}
+
+function subscribeToMarketplace() {
+  stopMarketplaceSubscription();
+  unsubscribeMarketplace = firebase.firestoreApi.onSnapshot(
+    firebase.firestoreApi.collection(firebase.db, "marketplaceItems"),
+    (snapshot) => {
+      state.marketplaceItems = snapshot.docs
+        .map((item) => ({ id: item.id, ...item.data() }))
+        .sort((left, right) => Number(right.createdAt) - Number(left.createdAt));
+      renderMarketplaceAdmin();
+    },
+    (error) => {
+      console.error(error);
+      ui.marketplaceMessage.textContent = "Kunde inte synka marknadsplatsen.";
+    }
+  );
+}
+
+function stopMarketplaceSubscription() {
+  if (unsubscribeMarketplace) {
+    unsubscribeMarketplace();
+    unsubscribeMarketplace = undefined;
   }
 }
 
@@ -322,6 +371,11 @@ async function onSaveOrder(event) {
     moderationReason: asString(existingOrder?.moderationReason),
     moderationUpdatedAt: Number(existingOrder?.moderationUpdatedAt) || now,
     source: existingOrder?.source || "admin",
+    orderType: existingOrder?.orderType || "custom",
+    marketplaceItemId: asString(existingOrder?.marketplaceItemId),
+    marketplaceImageUrl: asString(existingOrder?.marketplaceImageUrl),
+    paymentStatus: asString(formData.get("paymentStatus")) || "Ej aktuell",
+    swishReference: asString(formData.get("swishReference")),
     customerId: existingOrder?.customerId || null,
     archivedAt: Number(existingOrder?.archivedAt) || null,
     createdAt: existingOrder?.createdAt || now,
@@ -332,6 +386,7 @@ async function onSaveOrder(event) {
 
   try {
     await persistOrder(order);
+    await syncMarketplaceItemWithPayment(order);
     resetForm();
   } catch (error) {
     console.error(error);
@@ -369,6 +424,15 @@ async function onOrderAction(event) {
     }
 
     try {
+      const order = state.orders.find((item) => item.id === orderId);
+
+      if (order?.marketplaceItemId && order.paymentStatus !== "Betald") {
+        await setMarketplaceItemStatus(order.marketplaceItemId, "available", {
+          reservedBy: "",
+          reservedOrderId: ""
+        });
+      }
+
       await firebase.firestoreApi.deleteDoc(firebase.firestoreApi.doc(firebase.db, "orders", orderId));
     } catch (error) {
       console.error(error);
@@ -431,6 +495,8 @@ function fillForm(order) {
   ui.dueDate.value = order.dueDate;
   ui.deliveryMethod.value = order.deliveryMethod || "Postas";
   ui.status.value = order.status;
+  ui.paymentStatus.value = order.paymentStatus || "Ej aktuell";
+  ui.swishReference.value = order.swishReference || "";
   ui.notes.value = order.notes;
   updateShippingEstimate();
   ui.customer.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -444,6 +510,7 @@ function resetForm() {
   setDefaultDate();
   ui.deliveryMethod.value = "Postas";
   ui.status.value = "Ny";
+  ui.paymentStatus.value = "Ej aktuell";
   updateShippingEstimate();
 }
 
@@ -575,10 +642,33 @@ function createOrderCard(order, isDraggable = false, isArchived = false) {
   const totalWithShipping = total + shippingCost;
   const weightText = weight > 0 ? `${weight} g` : "Ingen vikt";
   const deliveryMethod = order.deliveryMethod || "Postas";
+  const paymentStatus = asString(order.paymentStatus) || "Ej aktuell";
 
   meta.textContent = isDraggable
     ? `${deliveryMethod} • ${weightText} • Frakt ${shippingCost} kr • Totalt ${totalWithShipping} kr • ${formatDate(order.dueDate)}`
     : `${order.quantity} st • ${deliveryMethod} • Varor ${total} kr • Frakt ${shippingCost} kr • Totalt ${totalWithShipping} kr • Klart ${formatDate(order.dueDate)}`;
+
+  if (order.orderType === "marketplace" || order.source === "marketplace") {
+    card.classList.add("is-marketplace-order");
+    const payment = document.createElement("p");
+    payment.className = "order-payment";
+    payment.textContent = `Marknadsplats • Betalning: ${paymentStatus}`;
+
+    if (order.swishReference) {
+      payment.textContent += ` • Swish: ${order.swishReference}`;
+    }
+
+    card.insertBefore(payment, notes);
+
+    if (order.marketplaceImageUrl) {
+      const image = document.createElement("img");
+      image.className = "order-marketplace-thumb";
+      image.src = order.marketplaceImageUrl;
+      image.alt = order.product;
+      image.loading = "lazy";
+      card.insertBefore(image, orderImages);
+    }
+  }
 
   if (order.status === "Levererad") {
     nextButton.disabled = true;
@@ -929,6 +1019,280 @@ function updateShippingEstimate() {
     `${quantity} × ${unitPrice} kr + ${shippingRate.price} kr frakt.`;
 }
 
+async function onSaveMarketplaceItem(event) {
+  event.preventDefault();
+
+  if (!firebase?.auth.currentUser) {
+    return;
+  }
+
+  const formData = new FormData(ui.marketplaceForm);
+  const id = ui.marketplaceItemId.value || `item_${Date.now()}_${Math.round(Math.random() * 10000)}`;
+  const existingItem = state.marketplaceItems.find((item) => item.id === id);
+  const imageFile = ui.marketplaceImage.files?.[0];
+
+  if (!existingItem && !imageFile) {
+    ui.marketplaceMessage.textContent = "Välj en bild på varan.";
+    return;
+  }
+
+  if (imageFile && (!imageFile.type.startsWith("image/") || imageFile.size > 5 * 1024 * 1024)) {
+    ui.marketplaceMessage.textContent = "Bilden måste vara en bildfil och högst 5 MB.";
+    return;
+  }
+
+  ui.marketplaceSave.disabled = true;
+  ui.marketplaceSave.textContent = imageFile ? "Laddar upp…" : "Sparar…";
+  ui.marketplaceMessage.textContent = "";
+
+  try {
+    const imageUrl = imageFile
+      ? await uploadMarketplaceImage(id, imageFile)
+      : existingItem.imageUrl;
+    const now = Date.now();
+    const item = {
+      id,
+      title: asString(formData.get("title")),
+      description: asString(formData.get("description")),
+      price: Math.max(0, Number(formData.get("price")) || 0),
+      shippingCost: Math.max(0, Number(formData.get("shippingCost")) || 0),
+      imageUrl,
+      status: asString(formData.get("itemStatus")) || "available",
+      reservedBy: existingItem?.reservedBy || "",
+      reservedOrderId: existingItem?.reservedOrderId || "",
+      createdAt: existingItem?.createdAt || now,
+      updatedAt: now
+    };
+
+    if (item.status === "available") {
+      item.reservedBy = "";
+      item.reservedOrderId = "";
+    }
+
+    await firebase.firestoreApi.setDoc(
+      firebase.firestoreApi.doc(firebase.db, "marketplaceItems", id),
+      item
+    );
+    resetMarketplaceForm();
+  } catch (error) {
+    console.error(error);
+    ui.marketplaceMessage.textContent = `Varan kunde inte sparas: ${asString(error?.message)}`;
+  } finally {
+    ui.marketplaceSave.disabled = false;
+    ui.marketplaceSave.textContent = "Publicera vara";
+  }
+}
+
+function renderMarketplaceAdmin() {
+  ui.marketplaceList.innerHTML = "";
+
+  if (state.marketplaceItems.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "empty";
+    empty.textContent = "Inga begagnade saker är publicerade ännu.";
+    ui.marketplaceList.append(empty);
+    return;
+  }
+
+  state.marketplaceItems.forEach((item) => {
+    const card = document.createElement("article");
+    const image = document.createElement("img");
+    const body = document.createElement("div");
+    const title = document.createElement("h3");
+    const meta = document.createElement("p");
+    const actions = document.createElement("div");
+    const editButton = document.createElement("button");
+    const deleteButton = document.createElement("button");
+
+    card.className = "marketplace-admin-item";
+    card.dataset.itemId = item.id;
+    image.src = item.imageUrl;
+    image.alt = item.title;
+    body.className = "marketplace-admin-item-body";
+    title.textContent = item.title;
+    meta.textContent =
+      `${Number(item.price) || 0} kr • Frakt ${Number(item.shippingCost) || 0} kr • ${marketplaceStatusLabel(item.status)}`;
+    actions.className = "item-actions";
+    editButton.type = "button";
+    editButton.className = "mini";
+    editButton.dataset.action = "edit-marketplace-item";
+    editButton.textContent = "Redigera";
+    deleteButton.type = "button";
+    deleteButton.className = "mini danger";
+    deleteButton.dataset.action = "delete-marketplace-item";
+    deleteButton.textContent = "Ta bort";
+    actions.append(editButton, deleteButton);
+    body.append(title, meta, actions);
+    card.append(image, body);
+    ui.marketplaceList.append(card);
+  });
+}
+
+async function onMarketplaceAdminAction(event) {
+  const button = event.target.closest("button[data-action]");
+  const card = button?.closest(".marketplace-admin-item");
+  const item = state.marketplaceItems.find((entry) => entry.id === card?.dataset.itemId);
+
+  if (!item) {
+    return;
+  }
+
+  if (button.dataset.action === "edit-marketplace-item") {
+    ui.marketplaceItemId.value = item.id;
+    ui.marketplaceTitle.value = item.title;
+    ui.marketplaceDescription.value = item.description;
+    ui.marketplacePrice.value = String(item.price);
+    ui.marketplaceShipping.value = String(item.shippingCost);
+    ui.marketplaceStatus.value = item.status;
+    ui.marketplaceImagePreview.src = item.imageUrl;
+    ui.marketplaceImagePreview.alt = item.title;
+    ui.marketplaceImagePreview.hidden = false;
+    ui.marketplaceSave.textContent = "Spara ändringar";
+    ui.marketplaceForm.scrollIntoView({ behavior: "smooth", block: "start" });
+    return;
+  }
+
+  if (button.dataset.action === "delete-marketplace-item") {
+    const shouldDelete = window.confirm(`Ta bort "${item.title}" från marknadsplatsen?`);
+
+    if (!shouldDelete) {
+      return;
+    }
+
+    try {
+      await firebase.firestoreApi.deleteDoc(
+        firebase.firestoreApi.doc(firebase.db, "marketplaceItems", item.id)
+      );
+    } catch (error) {
+      console.error(error);
+      ui.marketplaceMessage.textContent = "Varan kunde inte tas bort.";
+    }
+  }
+}
+
+function resetMarketplaceForm() {
+  ui.marketplaceForm.reset();
+  ui.marketplaceItemId.value = "";
+  ui.marketplaceShipping.value = "0";
+  ui.marketplaceStatus.value = "available";
+  ui.marketplaceImagePreview.hidden = true;
+  ui.marketplaceImagePreview.removeAttribute("src");
+  ui.marketplaceMessage.textContent = "";
+  ui.marketplaceSave.textContent = "Publicera vara";
+}
+
+function previewMarketplaceImage() {
+  const file = ui.marketplaceImage.files?.[0];
+
+  if (!file) {
+    return;
+  }
+
+  ui.marketplaceImagePreview.src = URL.createObjectURL(file);
+  ui.marketplaceImagePreview.alt = "Förhandsvisning av varan";
+  ui.marketplaceImagePreview.hidden = false;
+}
+
+async function uploadMarketplaceImage(itemId, file) {
+  const config = window.CLOUDINARY_CONFIG || {};
+  const cloudName = asString(config.cloudName);
+  const signEndpoint = asString(config.signEndpoint);
+  const uploadPreset = asString(config.uploadPreset);
+  const folder = `${asString(config.folder) || "nailsbyyg-orders"}/marketplace`;
+  const formData = new FormData();
+
+  formData.append("file", file);
+
+  if (signEndpoint) {
+    const idToken = await firebase.auth.currentUser.getIdToken();
+    const signatureResponse = await fetch(signEndpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`
+      },
+      body: JSON.stringify({ orderId: itemId, fileIndex: 0, folder })
+    });
+    const signed = await signatureResponse.json();
+
+    if (!signatureResponse.ok) {
+      throw new Error(signed?.error || "Cloudinary-signeringen misslyckades.");
+    }
+
+    formData.append("api_key", signed.apiKey);
+    formData.append("timestamp", String(signed.timestamp));
+    formData.append("signature", signed.signature);
+    formData.append("folder", signed.folder);
+    formData.append("public_id", signed.publicId);
+    formData.append("max_file_size", String(signed.maxFileSize));
+
+    return sendMarketplaceImage(
+      signed.cloudName || cloudName,
+      formData
+    );
+  }
+
+  if (!cloudName || !uploadPreset) {
+    throw new Error("Cloudinary är inte konfigurerat.");
+  }
+
+  formData.append("upload_preset", uploadPreset);
+  formData.append("folder", folder);
+  formData.append("public_id", `${itemId}_${Date.now()}`);
+  return sendMarketplaceImage(cloudName, formData);
+}
+
+async function sendMarketplaceImage(cloudName, formData) {
+  const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+    method: "POST",
+    body: formData
+  });
+  const result = await response.json();
+
+  if (!response.ok || !result.secure_url) {
+    throw new Error(result?.error?.message || "Bilduppladdningen misslyckades.");
+  }
+
+  return result.secure_url;
+}
+
+async function syncMarketplaceItemWithPayment(order) {
+  if (!order.marketplaceItemId) {
+    return;
+  }
+
+  if (order.paymentStatus === "Betald") {
+    await setMarketplaceItemStatus(order.marketplaceItemId, "sold");
+  } else if (order.paymentStatus === "Återbetald") {
+    await setMarketplaceItemStatus(order.marketplaceItemId, "available", {
+      reservedBy: "",
+      reservedOrderId: ""
+    });
+  } else if (order.paymentStatus === "Väntar på Swish") {
+    await setMarketplaceItemStatus(order.marketplaceItemId, "reserved");
+  }
+}
+
+async function setMarketplaceItemStatus(itemId, status, extra = {}) {
+  await firebase.firestoreApi.setDoc(
+    firebase.firestoreApi.doc(firebase.db, "marketplaceItems", itemId),
+    {
+      status,
+      ...extra,
+      updatedAt: Date.now()
+    },
+    { merge: true }
+  );
+}
+
+function marketplaceStatusLabel(status) {
+  return {
+    available: "Tillgänglig",
+    reserved: "Reserverad",
+    sold: "Såld"
+  }[status] || status;
+}
+
 function visibleOrders() {
   const orders = activeOrders();
 
@@ -1034,6 +1398,11 @@ function normalizeLegacyOrder(order) {
     moderationReason: asString(order.moderationReason),
     moderationUpdatedAt: Number(order.moderationUpdatedAt) || now,
     source: asString(order.source) || "legacy",
+    orderType: asString(order.orderType) || "custom",
+    marketplaceItemId: asString(order.marketplaceItemId),
+    marketplaceImageUrl: asString(order.marketplaceImageUrl),
+    paymentStatus: asString(order.paymentStatus) || "Ej aktuell",
+    swishReference: asString(order.swishReference),
     customerId: order.customerId || null,
     archivedAt: Number(order.archivedAt) || null,
     createdAt: Number(order.createdAt) || Number(order.updatedAt) || now,

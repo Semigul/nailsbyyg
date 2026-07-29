@@ -16,7 +16,7 @@ service cloud.firestore {
         && request.auth.token.firebase.sign_in_provider == "anonymous";
     }
 
-    function isValidCustomerOrder() {
+    function isValidCustomerOrder(orderId) {
       return isAnonymousCustomer()
         && request.resource.data.keys().hasOnly([
           "customer",
@@ -37,6 +37,11 @@ service cloud.firestore {
           "moderationReason",
           "moderationUpdatedAt",
           "source",
+          "orderType",
+          "marketplaceItemId",
+          "marketplaceImageUrl",
+          "paymentStatus",
+          "swishReference",
           "customerId",
           "createdAt",
           "updatedAt"
@@ -81,14 +86,63 @@ service cloud.firestore {
         && request.resource.data.moderationReason is string
         && request.resource.data.moderationReason.size() <= 160
         && request.resource.data.moderationUpdatedAt is int
-        && request.resource.data.price == 0
         && request.resource.data.weight == 0
-        && request.resource.data.shippingCost == 0
         && request.resource.data.status == "Ny"
-        && request.resource.data.source == "customer"
         && request.resource.data.customerId == request.auth.uid
         && request.resource.data.createdAt is int
-        && request.resource.data.updatedAt is int;
+        && request.resource.data.updatedAt is int
+        && (
+          (
+            request.resource.data.source == "customer"
+            && request.resource.data.orderType == "custom"
+            && request.resource.data.price == 0
+            && request.resource.data.shippingCost == 0
+            && request.resource.data.marketplaceItemId == ""
+            && request.resource.data.marketplaceImageUrl == ""
+            && request.resource.data.paymentStatus == "Ej aktuell"
+            && request.resource.data.swishReference == ""
+          )
+          || (
+            request.resource.data.source == "marketplace"
+            && request.resource.data.orderType == "marketplace"
+            && request.resource.data.quantity == 1
+            && request.resource.data.designImagePaths.size() == 0
+            && request.resource.data.approvedDesignImageUrls.size() == 0
+            && request.resource.data.paymentStatus == "Väntar på Swish"
+            && request.resource.data.swishReference == ""
+            && request.resource.data.marketplaceItemId.size() > 0
+            && getAfter(
+              /databases/$(database)/documents/marketplaceItems/$(request.resource.data.marketplaceItemId)
+            ).data.status == "reserved"
+            && getAfter(
+              /databases/$(database)/documents/marketplaceItems/$(request.resource.data.marketplaceItemId)
+            ).data.reservedBy == request.auth.uid
+            && getAfter(
+              /databases/$(database)/documents/marketplaceItems/$(request.resource.data.marketplaceItemId)
+            ).data.reservedOrderId == orderId
+            && request.resource.data.product == getAfter(
+              /databases/$(database)/documents/marketplaceItems/$(request.resource.data.marketplaceItemId)
+            ).data.title
+            && request.resource.data.price == getAfter(
+              /databases/$(database)/documents/marketplaceItems/$(request.resource.data.marketplaceItemId)
+            ).data.price
+            && request.resource.data.marketplaceImageUrl == getAfter(
+              /databases/$(database)/documents/marketplaceItems/$(request.resource.data.marketplaceItemId)
+            ).data.imageUrl
+            && (
+              (
+                request.resource.data.deliveryMethod == "Hämtas"
+                && request.resource.data.shippingCost == 0
+              )
+              || (
+                request.resource.data.deliveryMethod == "Postas"
+                && request.resource.data.shippingCost == getAfter(
+                  /databases/$(database)/documents/marketplaceItems/$(request.resource.data.marketplaceItemId)
+                ).data.shippingCost
+              )
+            )
+          )
+        );
     }
 
     match /admins/{adminId} {
@@ -97,8 +151,35 @@ service cloud.firestore {
     }
 
     match /orders/{orderId} {
-      allow create: if isAdmin() || isValidCustomerOrder();
+      allow create: if isAdmin() || isValidCustomerOrder(orderId);
       allow read, update, delete: if isAdmin();
+    }
+
+    match /marketplaceItems/{itemId} {
+      allow read: if resource.data.status in ["available", "reserved", "sold"];
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin()
+        || (
+          isAnonymousCustomer()
+          && resource.data.status == "available"
+          && request.resource.data.status == "reserved"
+          && request.resource.data.reservedBy == request.auth.uid
+          && request.resource.data.reservedOrderId is string
+          && request.resource.data.reservedOrderId.size() > 0
+          && request.resource.data.updatedAt is int
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            "status",
+            "reservedBy",
+            "reservedOrderId",
+            "updatedAt"
+          ])
+          && getAfter(
+            /databases/$(database)/documents/orders/$(request.resource.data.reservedOrderId)
+          ).data.marketplaceItemId == itemId
+          && getAfter(
+            /databases/$(database)/documents/orders/$(request.resource.data.reservedOrderId)
+          ).data.customerId == request.auth.uid
+        );
     }
 
     match /{document=**} {
