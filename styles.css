@@ -1053,6 +1053,21 @@ textarea {
   line-height: 1.5;
 }
 
+.customer-shipping-note strong {
+  display: block;
+  margin-bottom: 0.28rem;
+  color: var(--ink);
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
+.customer-delivery-time {
+  display: block;
+  margin-top: 0.75rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid rgba(248, 108, 155, 0.22);
+}
+
 .customer-upload-group {
   margin-top: 0.8rem;
 }
