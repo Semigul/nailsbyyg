@@ -17,9 +17,11 @@ Anvand denna checklista innan release.
 - Om Firebase anvands ska appen fortsatt fungera lokalt vid fel.
 - Inga hemligheter far laggas i repo.
 - Ny eller andrad funktionalitet ska ha motsvarande Playwright E2E-test.
+- `npm run security` ska passera utan sårbarheter pa hog eller kritisk niva.
+- Firebase-versionen i package.json ska matcha CDN-versionen i firebase-client.mjs.
 
 ## Releasekrav
 - .github/workflows/deploy-pages.yml ska deploya utan fel.
 - `npm test` ska passera i mobil viewport fore release.
-- GitHub Pages-jobbet ska vanta pa godkanda E2E-tester.
+- GitHub Pages-jobbet ska vanta pa godkanda E2E-tester och CodeQL-analys.
 - README ska beskriva hur man startar och deployar appen.

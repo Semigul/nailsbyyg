@@ -3,7 +3,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "node --check app.js && node --check customer.js && node --check firebase-client.mjs && node --check postnord-rates.mjs && git diff --check",
+    "check": "node --check app.js && node --check customer.js && node --check firebase-client.mjs && node --check postnord-rates.mjs && node --check scripts/check-firebase-version.mjs && npm run security:firebase && git diff --check",
+    "security": "npm run security:firebase && npm run security:audit",
+    "security:audit": "npm audit --audit-level=high",
+    "security:firebase": "node scripts/check-firebase-version.mjs",
     "test": "npm run check && npm run test:e2e",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
@@ -12,5 +15,8 @@
   },
   "devDependencies": {
     "@playwright/test": "1.62.0"
+  },
+  "dependencies": {
+    "firebase": "12.16.0"
   }
 }

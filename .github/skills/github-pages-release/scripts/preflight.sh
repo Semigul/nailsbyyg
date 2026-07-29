@@ -13,7 +13,9 @@ required_files=(
   "tests/e2e/customer-order.spec.js"
   "tests/e2e/admin-orders.spec.js"
   ".githooks/pre-push"
+  ".github/dependabot.yml"
   ".github/workflows/deploy-pages.yml"
+  "scripts/check-firebase-version.mjs"
   "README.md"
 )
 
@@ -33,6 +35,7 @@ if [[ ! -d "node_modules/@playwright/test" ]]; then
   exit 1
 fi
 
+npm run security
 npm test
 
 echo "PASS: Preflight checks completed."

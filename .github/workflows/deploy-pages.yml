@@ -7,6 +7,8 @@ on:
   pull_request:
     branches:
       - main
+  schedule:
+    - cron: "23 5 * * 1"
   workflow_dispatch:
 
 permissions:
@@ -34,16 +36,41 @@ jobs:
       - name: Installera beroenden
         run: npm ci
 
+      - name: Kontrollera beroenden och Firebase
+        run: npm run security
+
       - name: Installera testwebbläsare
         run: npx playwright install --with-deps chromium
 
       - name: Kör kvalitetskontroller och E2E
         run: npm test
 
+  codeql:
+    name: CodeQL-säkerhetsanalys
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+      security-events: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Starta CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+
+      - name: Analysera koden
+        uses: github/codeql-action/analyze@v3
+
   deploy:
     name: Publicera
-    if: github.event_name != 'pull_request'
-    needs: test
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    needs:
+      - test
+      - codeql
     permissions:
       contents: read
       pages: write

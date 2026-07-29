@@ -46,11 +46,27 @@ Kör alla kod- och E2E-kontroller:
 npm test
 ```
 
+Kör beroende- och Firebase-kontroller:
+
+```bash
+npm run security
+```
+
 E2E-sviten kör kundflödet och adminflödet i mobil viewport med en isolerad Firebase-mock. Testdata skickas aldrig till produktion.
 
 `npm install` aktiverar repots versionerade `pre-push`-hook. Varje `git push` kör därefter `npm test` och stoppas om någon kontroll misslyckas.
 
 Vid ny funktionalitet ska motsvarande test läggas till eller uppdateras i `tests/e2e/`. Projektets Feature Change-skill och Product Builder-agent behandlar detta som ett leveranskrav.
+
+## Säkerhetskontroller
+
+- Dependabot kontrollerar npm-paket och GitHub Actions varje vecka och öppnar uppdaterings-PR:ar.
+- `npm audit --audit-level=high` stoppar releasen vid sårbarheter med hög eller kritisk nivå.
+- CodeQL analyserar JavaScript-koden vid pull requests, push till `main` och en gång i veckan.
+- Firebase finns som exakt version i `package.json` så att npm audit och Dependabot kan kontrollera paketet.
+- `scripts/check-firebase-version.mjs` stoppar releasen om Firebase-versionen i `package.json` inte matchar CDN-versionen i `firebase-client.mjs`.
+
+När Firebase uppdateras ska samma exakta version ändras i både `package.json` och `firebase-client.mjs`. Kör därefter `npm install` för att uppdatera låsfilen.
 
 ## Firebase
 
@@ -140,7 +156,7 @@ Release med två klick:
 1. Öppna Actions → Publicera till GitHub Pages.
 2. Klicka Run workflow → Run workflow.
 
-Workflown kör E2E-tester vid pull requests och push till `main`. GitHub Pages publiceras endast när hela testsuiten har passerat.
+Workflown kör E2E-tester, beroendekontroll och CodeQL vid pull requests och push till `main`. GitHub Pages publiceras endast när alla releasegrindar har passerat.
 
 ### Snabb preflight innan release
 
