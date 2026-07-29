@@ -16,6 +16,7 @@ const ui = {
   adminAuthCard: document.getElementById("adminAuthCard"),
   adminLoginForm: document.getElementById("adminLoginForm"),
   adminLoginButton: document.getElementById("adminLoginButton"),
+  adminRememberMe: document.getElementById("adminRememberMe"),
   adminAuthMessage: document.getElementById("adminAuthMessage"),
   connectionBadge: document.getElementById("connectionBadge"),
   signOutButton: document.getElementById("signOutButton"),
@@ -121,6 +122,11 @@ async function onAdminLogin(event) {
   ui.adminAuthMessage.textContent = "";
 
   try {
+    const persistence = ui.adminRememberMe.checked
+      ? firebase.authApi.browserLocalPersistence
+      : firebase.authApi.browserSessionPersistence;
+
+    await firebase.authApi.setPersistence(firebase.auth, persistence);
     await firebase.authApi.signInWithEmailAndPassword(
       firebase.auth,
       asString(formData.get("email")),

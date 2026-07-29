@@ -262,6 +262,48 @@ button {
   line-height: 1.55;
 }
 
+.auth-persistence {
+  display: flex;
+  min-height: 52px;
+  gap: 0.7rem;
+  align-items: center;
+  margin: 0.8rem 0 0;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0.85rem;
+  background: var(--surface-blush);
+  cursor: pointer;
+}
+
+.auth-persistence input {
+  width: 1.15rem;
+  height: 1.15rem;
+  min-width: 1.15rem;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--pink-strong);
+}
+
+.auth-persistence input:focus {
+  box-shadow: 0 0 0 3px rgba(248, 108, 155, 0.16);
+}
+
+.auth-persistence span {
+  display: grid;
+  gap: 0.08rem;
+}
+
+.auth-persistence strong {
+  font-size: 0.82rem;
+}
+
+.auth-persistence small {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
 .auth-submit {
   margin-top: 1rem;
 }

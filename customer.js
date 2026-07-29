@@ -37,7 +37,7 @@ async function init() {
 
   try {
     firebase = await getFirebaseServices();
-    customerUser = firebase.auth.currentUser;
+    customerUser = await waitForInitialAuthUser(firebase.auth, firebase.authApi);
 
     if (!customerUser) {
       const credential = await firebase.authApi.signInAnonymously(firebase.auth);
@@ -52,6 +52,20 @@ async function init() {
     ui.connectionStatus.textContent =
       "Beställningssystemet kunde inte ansluta. Försök igen senare eller kontakta Nailsbyy.g.";
   }
+}
+
+function waitForInitialAuthUser(auth, authApi) {
+  return new Promise((resolve, reject) => {
+    let unsubscribe = () => {};
+    unsubscribe = authApi.onAuthStateChanged(
+      auth,
+      (user) => {
+        unsubscribe();
+        resolve(user);
+      },
+      reject
+    );
+  });
 }
 
 async function onSubmitOrder(event) {

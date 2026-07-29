@@ -47,6 +47,14 @@
             required
           />
 
+          <label class="auth-persistence" for="adminRememberMe">
+            <input id="adminRememberMe" name="rememberMe" type="checkbox" checked />
+            <span>
+              <strong>Håll mig inloggad</strong>
+              <small>Välj detta endast på en privat enhet.</small>
+            </span>
+          </label>
+
           <button type="submit" class="primary auth-submit" id="adminLoginButton" disabled>Logga in</button>
           <p id="adminAuthMessage" class="form-message" aria-live="polite"></p>
         </form>

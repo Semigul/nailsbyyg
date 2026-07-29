@@ -42,9 +42,39 @@ test("vald ordervy finns kvar efter omladdning", async ({ page }) => {
 
   await page.reload();
 
-  await page.getByLabel("E-post", { exact: true }).fill("admin@example.com");
-  await page.getByLabel("Lösenord").fill("hemligt123");
-  await page.getByRole("button", { name: "Logga in" }).click();
+  await expect(page.locator("#adminAuthCard")).toBeHidden();
   await expect(page.getByRole("button", { name: "Lista" })).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("body")).toHaveJSProperty("scrollWidth", 390);
+});
+
+test("admin förblir inloggad efter omladdning på en privat enhet", async ({ page }) => {
+  await page.reload();
+
+  await expect(page.locator("#connectionBadge")).toHaveText("Firebase synkad");
+  await expect(page.locator("#adminAuthCard")).toBeHidden();
+  await expect(page.getByRole("button", { name: "Logga ut" })).toBeVisible();
+});
+
+test("kundsidan ersätter inte en sparad adminsession", async ({ page }) => {
+  await page.goto("/kund.html");
+
+  await expect(page.locator("#customerOrderForm")).toBeVisible();
+  await expect
+    .poll(() =>
+      page.evaluate(() => globalThis.__NAILSBYYG_E2E_FIREBASE__.auth.currentUser?.uid)
+    )
+    .toBe("admin-e2e");
+
+  await page.goto("/admin.html");
+  await expect(page.locator("#adminAuthCard")).toBeHidden();
+});
+
+test("logga ut rensar den sparade sessionen", async ({ page }) => {
+  await page.getByRole("button", { name: "Logga ut" }).click();
+  await expect(page.locator("#adminAuthCard")).toBeVisible();
+
+  await page.reload();
+
+  await expect(page.locator("#adminAuthCard")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Logga in" })).toBeVisible();
 });

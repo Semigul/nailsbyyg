@@ -11,6 +11,11 @@ const FIREBASE_MODULES = {
   `,
   "firebase-auth.js": `
     const state = globalThis.__NAILSBYYG_E2E_FIREBASE__;
+    const LOCAL_AUTH_KEY = "nailsbyyg.e2e.auth.local";
+    const SESSION_AUTH_KEY = "nailsbyyg.e2e.auth.session";
+
+    export const browserLocalPersistence = { type: "local" };
+    export const browserSessionPersistence = { type: "session" };
 
     function emitAuth(auth) {
       queueMicrotask(() => {
@@ -28,32 +33,85 @@ const FIREBASE_MODULES = {
       };
     }
 
+    function readStoredUser() {
+      const sessionUser = sessionStorage.getItem(SESSION_AUTH_KEY);
+      const localUser = localStorage.getItem(LOCAL_AUTH_KEY);
+      const serializedUser = sessionUser || localUser;
+
+      state.persistence = sessionUser ? "session" : "local";
+
+      if (!serializedUser) {
+        return null;
+      }
+
+      const storedUser = JSON.parse(serializedUser);
+      return user(storedUser.uid, storedUser.isAnonymous);
+    }
+
+    function clearStoredUser() {
+      localStorage.removeItem(LOCAL_AUTH_KEY);
+      sessionStorage.removeItem(SESSION_AUTH_KEY);
+    }
+
+    function persistUser(currentUser) {
+      clearStoredUser();
+
+      if (!currentUser) {
+        return;
+      }
+
+      const storage = state.persistence === "session" ? sessionStorage : localStorage;
+      const key = state.persistence === "session" ? SESSION_AUTH_KEY : LOCAL_AUTH_KEY;
+      storage.setItem(key, JSON.stringify({
+        uid: currentUser.uid,
+        isAnonymous: currentUser.isAnonymous
+      }));
+    }
+
     export function getAuth() {
       return state.auth;
     }
 
     export function onAuthStateChanged(auth, listener) {
       state.authListeners.push(listener);
-      queueMicrotask(() => listener(auth.currentUser));
+
+      if (!state.authInitialized) {
+        state.authInitialized = true;
+        queueMicrotask(() => {
+          auth.currentUser = readStoredUser();
+          listener(auth.currentUser);
+        });
+      } else {
+        queueMicrotask(() => listener(auth.currentUser));
+      }
+
       return () => {
         state.authListeners = state.authListeners.filter((item) => item !== listener);
       };
     }
 
+    export async function setPersistence(auth, persistence) {
+      state.persistence = persistence?.type === "session" ? "session" : "local";
+      persistUser(auth.currentUser);
+    }
+
     export async function signInAnonymously(auth) {
       auth.currentUser = user("customer-e2e", true);
+      persistUser(auth.currentUser);
       emitAuth(auth);
       return { user: auth.currentUser };
     }
 
     export async function signInWithEmailAndPassword(auth) {
       auth.currentUser = user("admin-e2e", false);
+      persistUser(auth.currentUser);
       emitAuth(auth);
       return { user: auth.currentUser };
     }
 
     export async function signOut(auth) {
       auth.currentUser = null;
+      clearStoredUser();
       emitAuth(auth);
     }
   `,
@@ -173,7 +231,9 @@ export async function installFirebaseMock(page) {
     globalThis.__NAILSBYYG_E2E_FIREBASE__ = {
       apps: [],
       auth: { currentUser: null },
+      authInitialized: false,
       authListeners: [],
+      persistence: "local",
       db: {},
       storage: {},
       orders: {},
