@@ -2,7 +2,6 @@ const FIREBASE_VERSION = "12.16.0";
 const FIREBASE_APP_URL = `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-app.js`;
 const FIREBASE_AUTH_URL = `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-auth.js`;
 const FIREBASE_FIRESTORE_URL = `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-firestore.js`;
-const FIREBASE_STORAGE_URL = `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-storage.js`;
 
 let servicesPromise;
 
@@ -23,11 +22,10 @@ async function connectFirebase() {
     throw new Error("Firebase-konfigurationen saknas eller innehåller platshållare.");
   }
 
-  const [appApi, authApi, firestoreApi, storageApi] = await Promise.all([
+  const [appApi, authApi, firestoreApi] = await Promise.all([
     import(FIREBASE_APP_URL),
     import(FIREBASE_AUTH_URL),
-    import(FIREBASE_FIRESTORE_URL),
-    import(FIREBASE_STORAGE_URL)
+    import(FIREBASE_FIRESTORE_URL)
   ]);
 
   const app = appApi.getApps().length > 0 ? appApi.getApp() : appApi.initializeApp(config);
@@ -37,9 +35,7 @@ async function connectFirebase() {
     auth: authApi.getAuth(app),
     authApi,
     db: firestoreApi.getFirestore(app),
-    firestoreApi,
-    storage: storageApi.getStorage(app),
-    storageApi
+    firestoreApi
   };
 }
 
@@ -48,7 +44,9 @@ async function loadProjectConfig() {
     return;
   }
 
-  await import("./firebase.config.js");
+  const configUrl = new URL("./firebase.config.js", import.meta.url);
+  configUrl.searchParams.set("v", String(Date.now()));
+  await import(configUrl.href);
 }
 
 function isValidConfig(config) {

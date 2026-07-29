@@ -130,8 +130,15 @@ const FIREBASE_MODULES = {
       return name === "marketplaceItems" ? state.marketplaceItems : state.orders;
     }
 
-    function collectionSnapshot(name) {
+    function collectionSnapshot(name, constraints = []) {
       const docs = Object.entries(collectionData(name))
+        .filter(([, value]) => constraints.every((constraint) => {
+          if (constraint.kind !== "where") {
+            return true;
+          }
+
+          return constraint.operator === "==" && value[constraint.field] === constraint.value;
+        }))
         .sort(([, left], [, right]) => (right.updatedAt || 0) - (left.updatedAt || 0))
         .map(([id, value]) => ({
           id,
@@ -144,9 +151,10 @@ const FIREBASE_MODULES = {
     }
 
     function notifyCollection(name) {
-      const snapshot = collectionSnapshot(name);
       queueMicrotask(() => {
-        (state.listeners[name] || []).forEach((listener) => listener(snapshot));
+        (state.listeners[name] || []).forEach(({ queryReference, listener }) => {
+          listener(collectionSnapshot(name, queryReference.constraints));
+        });
       });
     }
 
@@ -196,20 +204,38 @@ const FIREBASE_MODULES = {
     }
 
     export function orderBy() {
-      return {};
+      return { kind: "orderBy" };
     }
 
-    export function query(collectionReference) {
-      return collectionReference;
+    export function where(field, operator, value) {
+      return { kind: "where", field, operator, value };
     }
 
-    export function onSnapshot(queryReference, listener) {
+    export function query(collectionReference, ...constraints) {
+      return { ...collectionReference, constraints };
+    }
+
+    export function onSnapshot(queryReference, listener, errorListener) {
       const name = queryReference.name;
+      const constraints = queryReference.constraints || [];
+      const hasAvailableFilter = constraints.some((constraint) =>
+        constraint.kind === "where"
+        && constraint.field === "status"
+        && constraint.operator === "=="
+        && constraint.value === "available"
+      );
+
+      if (name === "marketplaceItems" && state.auth.currentUser?.isAnonymous && !hasAvailableFilter) {
+        queueMicrotask(() => errorListener?.(new Error("Missing Firestore status constraint")));
+        return () => {};
+      }
+
       state.listeners[name] = state.listeners[name] || [];
-      state.listeners[name].push(listener);
-      queueMicrotask(() => listener(collectionSnapshot(name)));
+      const subscription = { queryReference: { ...queryReference, constraints }, listener };
+      state.listeners[name].push(subscription);
+      queueMicrotask(() => listener(collectionSnapshot(name, constraints)));
       return () => {
-        state.listeners[name] = state.listeners[name].filter((item) => item !== listener);
+        state.listeners[name] = state.listeners[name].filter((item) => item !== subscription);
       };
     }
 
@@ -268,8 +294,8 @@ const FIREBASE_MODULES = {
   `
 };
 
-export async function installFirebaseMock(page) {
-  await page.addInitScript(() => {
+export async function installFirebaseMock(page, options = {}) {
+  await page.addInitScript(({ injectFirebaseConfig }) => {
     let storedDatabase = {};
 
     try {
@@ -278,12 +304,14 @@ export async function installFirebaseMock(page) {
       storedDatabase = {};
     }
 
-    globalThis.FIREBASE_CONFIG = {
-      apiKey: "e2e-api-key",
-      authDomain: "e2e.local",
-      projectId: "e2e-project",
-      appId: "e2e-app"
-    };
+    if (injectFirebaseConfig) {
+      globalThis.FIREBASE_CONFIG = {
+        apiKey: "e2e-api-key",
+        authDomain: "e2e.local",
+        projectId: "e2e-project",
+        appId: "e2e-app"
+      };
+    }
     globalThis.CLOUDINARY_CONFIG = {
       cloudName: "e2e-cloud",
       uploadPreset: "e2e-preset",
@@ -306,6 +334,8 @@ export async function installFirebaseMock(page) {
       listeners: {},
       nextDocumentId: 1
     };
+  }, {
+    injectFirebaseConfig: options.injectFirebaseConfig !== false
   });
 
   await page.route("https://www.gstatic.com/firebasejs/**", async (route) => {

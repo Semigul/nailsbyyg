@@ -81,8 +81,12 @@ async function init() {
 
 function subscribeToMarketplace() {
   unsubscribeMarketplace?.();
-  unsubscribeMarketplace = firebase.firestoreApi.onSnapshot(
+  const availableItemsQuery = firebase.firestoreApi.query(
     firebase.firestoreApi.collection(firebase.db, "marketplaceItems"),
+    firebase.firestoreApi.where("status", "==", "available")
+  );
+  unsubscribeMarketplace = firebase.firestoreApi.onSnapshot(
+    availableItemsQuery,
     (snapshot) => {
       marketplaceItems = snapshot.docs
         .map((item) => ({ id: item.id, ...item.data() }))

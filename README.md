@@ -80,7 +80,7 @@ Firebase är aktiverat i appens kod. Följ dessa steg i Firebase Console:
 3. Skapa adminanvändaren under Authentication → Users.
 4. Skapa collectionen `admins`. Dokumentets ID ska vara adminanvändarens UID och innehålla `role: "admin"`.
 5. Kopiera `firebase.config.sample.js` till `firebase.config.js` och fyll i webbkonfigurationen.
-6. Aktivera Firebase Storage (blaze/spark enligt projektbehov).
+6. Firebase Storage behöver inte aktiveras. Bilder lagras i Cloudinary.
 7. Öppna Firestore → Rules, ersätt innehållet med `firestore.rules` och klicka Publish.
 8. Öppna Storage → Rules, ersätt innehållet med `storage.rules` och klicka Publish.
 9. Lägg till `localhost` och den publicerade domänen under Authentication → Settings → Authorized domains.
