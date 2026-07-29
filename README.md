@@ -12,6 +12,9 @@ En mobilvänlig admin- och kundapp för beställningar hos Nailsbyy.g.
 - Kundsida för nya beställningar
 - Kundsida med bilduppladdning för önskad design
 - Realtidssynk med Firebase Firestore
+- Marknadsplats för begagnade saker med bilder i Cloudinary
+- Säker reservation som skapar en ny order i adminvyn
+- Manuell Swish-status: väntar, betald eller återbetald
 - Skyddad admininloggning
 - PostNord-frakt baserad på vikt
 - Automatisk bildmoderering (pending/approved/rejected)
@@ -142,6 +145,28 @@ För deploy via GitHub Actions kan samma värden läggas in i `FIREBASE_CONFIG` 
 - `cloudinaryFolder` (valfritt)
 
 Alternativt som objekt under nyckeln `cloudinary`.
+
+## Marknadsplats och Swish
+
+Admin kan publicera begagnade saker längst ned i `admin.html`. Bilden laddas upp till Cloudinary
+och övriga uppgifter sparas i Firestore-samlingen `marketplaceItems`.
+
+När en kund beställer en tillgänglig vara sker reservationen och orderskapandet i samma
+Firestore-transaktion. Ordern får status `Ny`, typen `marketplace` och betalningsstatus
+`Väntar på Swish`. När admin väljer `Betald` markeras varan som såld. Vid `Återbetald` blir
+varan tillgänglig igen.
+
+Swish-numret kan visas efter reservationen genom att lägga till följande i den lokala
+`firebase.config.js`:
+
+```js
+window.MARKETPLACE_CONFIG = {
+  swishNumber: "DITT_SWISHNUMMER"
+};
+```
+
+Om numret lämnas tomt får kunden i stället information om att Swish-uppgifterna skickas
+manuellt till kontaktuppgiften i beställningen.
 
 ## Publicera till GitHub Pages
 

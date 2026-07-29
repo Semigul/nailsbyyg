@@ -34,7 +34,7 @@ test("marknadsplatsköp reserveras, blir en ny order och hanteras med Swish", as
   const itemForm = page.locator("#marketplaceItemForm");
   await itemForm.getByLabel("Namn på varan").fill("Rosa skridskor");
   await itemForm.getByLabel("Beskrivning").fill("Fina och använda några gånger.");
-  await itemForm.getByLabel("Pris (kr)").fill("150");
+  await itemForm.getByLabel("Vad kostar varan? (kr)").fill("150");
   await itemForm.getByLabel("Frakt (kr)").fill("59");
   await itemForm.getByLabel("Bild på varan").setInputFiles({
     name: "skridskor.png",
@@ -47,15 +47,19 @@ test("marknadsplatsköp reserveras, blir en ny order och hanteras med Swish", as
   await expect(adminItem).toContainText("Rosa skridskor");
   await expect(adminItem).toContainText("Tillgänglig");
 
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/kund.html");
   const customerItem = page.locator(".marketplace-item");
   await expect(customerItem).toContainText("Rosa skridskor");
+  const buyButtonBox = await customerItem.getByRole("button", { name: "Beställ" }).boundingBox();
+  expect(buyButtonBox?.height).toBeGreaterThanOrEqual(44);
+  await expect(page.locator("body")).toHaveJSProperty("scrollWidth", 390);
   await customerItem.getByRole("button", { name: "Beställ" }).click();
 
   const checkout = page.locator("#marketplaceOrderForm");
-  await checkout.getByLabel("Namn").fill("Maja Marknad");
-  await checkout.getByLabel("Telefon eller e-post").fill("maja@example.com");
-  await checkout.getByLabel("Leveranssätt").selectOption("Hämtas");
+  await checkout.getByLabel("Vem beställer?").fill("Maja Marknad");
+  await checkout.getByLabel("Hur når vi dig?").fill("maja@example.com");
+  await checkout.getByLabel("Hur vill du få varan?").selectOption("Hämtas");
   await checkout.getByRole("button", { name: "Reservera och beställ" }).click();
 
   await expect(page.locator("#marketplaceSuccess")).toBeVisible();

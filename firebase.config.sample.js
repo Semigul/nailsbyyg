@@ -18,3 +18,9 @@ window.CLOUDINARY_CONFIG = {
   uploadPreset: "DIN_UNSIGNED_UPLOAD_PRESET",
   folder: "nailsbyyg-orders"
 };
+
+// Valfritt: visas först efter att kunden har reserverat en marknadsplatsvara.
+// Lämna tomt om Swish-uppgifterna ska skickas manuellt till kunden.
+window.MARKETPLACE_CONFIG = {
+  swishNumber: ""
+};
