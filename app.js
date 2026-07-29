@@ -42,6 +42,9 @@ const ui = {
   filterCard: document.getElementById("filterCard"),
   ordersList: document.getElementById("ordersList"),
   kanbanBoard: document.getElementById("kanbanBoard"),
+  archivePanel: document.getElementById("archivePanel"),
+  archiveOrders: document.getElementById("archiveOrders"),
+  archiveCount: document.getElementById("archiveCount"),
   viewButtons: document.querySelectorAll("[data-view]"),
   statusChips: document.getElementById("statusChips"),
   totalCount: document.getElementById("totalCount"),
@@ -52,6 +55,7 @@ const ui = {
 
 let firebase;
 let unsubscribeOrders;
+let touchDrag;
 
 init();
 
@@ -73,11 +77,18 @@ function bindEvents() {
   ui.statusChips.addEventListener("click", onFilterClick);
   ui.ordersList.addEventListener("click", onOrderAction);
   ui.kanbanBoard.addEventListener("click", onOrderAction);
+  ui.archiveOrders.addEventListener("click", onOrderAction);
+  ui.ordersList.addEventListener("change", onStatusSelectChange);
+  ui.kanbanBoard.addEventListener("change", onStatusSelectChange);
   ui.kanbanBoard.addEventListener("dragstart", onDragStart);
   ui.kanbanBoard.addEventListener("dragover", onDragOver);
   ui.kanbanBoard.addEventListener("dragleave", onDragLeave);
   ui.kanbanBoard.addEventListener("drop", onDrop);
   ui.kanbanBoard.addEventListener("dragend", clearDropTargets);
+  ui.kanbanBoard.addEventListener("pointerdown", onTouchDragStart);
+  ui.kanbanBoard.addEventListener("pointermove", onTouchDragMove);
+  ui.kanbanBoard.addEventListener("pointerup", onTouchDragEnd);
+  ui.kanbanBoard.addEventListener("pointercancel", onTouchDragEnd);
   ui.viewButtons.forEach((button) => button.addEventListener("click", onViewChange));
 }
 
@@ -306,6 +317,7 @@ async function onSaveOrder(event) {
     moderationUpdatedAt: Number(existingOrder?.moderationUpdatedAt) || now,
     source: existingOrder?.source || "admin",
     customerId: existingOrder?.customerId || null,
+    archivedAt: Number(existingOrder?.archivedAt) || null,
     createdAt: existingOrder?.createdAt || now,
     updatedAt: now
   };
@@ -370,6 +382,22 @@ async function onOrderAction(event) {
     return;
   }
 
+  if (action === "archive") {
+    const shouldArchive = window.confirm("Arkivera ordern? Du kan återställa den senare.");
+
+    if (!shouldArchive) {
+      return;
+    }
+
+    await updateArchiveState(order, Date.now());
+    return;
+  }
+
+  if (action === "restore") {
+    await updateArchiveState(order, null);
+    return;
+  }
+
   if (action === "next") {
     try {
       await persistOrder({
@@ -415,6 +443,7 @@ function resetForm() {
 
 function render() {
   renderOrders();
+  renderArchive();
   renderSummary();
 }
 
@@ -460,7 +489,7 @@ function renderKanbanBoard() {
   ui.kanbanBoard.innerHTML = "";
 
   STATUS_FLOW.forEach((statusName) => {
-    const orders = state.orders.filter((order) => order.status === statusName);
+    const orders = activeOrders().filter((order) => order.status === statusName);
     const column = document.createElement("section");
     const header = document.createElement("header");
     const title = document.createElement("h3");
@@ -493,7 +522,7 @@ function renderKanbanBoard() {
   });
 }
 
-function createOrderCard(order, isDraggable = false) {
+function createOrderCard(order, isDraggable = false, isArchived = false) {
   const fragment = ui.orderTemplate.content.cloneNode(true);
   const card = fragment.querySelector(".order-item");
   const title = fragment.querySelector(".order-title");
@@ -504,11 +533,15 @@ function createOrderCard(order, isDraggable = false) {
   const notes = fragment.querySelector(".order-notes");
   const orderImages = fragment.querySelector(".order-images");
   const nextButton = fragment.querySelector('[data-action="next"]');
+  const editButton = fragment.querySelector('[data-action="edit"]');
+  const archiveButton = fragment.querySelector('[data-action="archive"]');
+  const dragHandle = fragment.querySelector("[data-drag-handle]");
+  const actions = fragment.querySelector(".item-actions");
 
   card.dataset.orderId = order.id;
-  card.draggable = isDraggable;
+  card.draggable = isDraggable && !isArchived;
 
-  if (isDraggable) {
+  if (isDraggable && !isArchived) {
     card.title = "Dra kortet till ett annat steg";
   }
 
@@ -545,6 +578,38 @@ function createOrderCard(order, isDraggable = false) {
   if (order.status === "Levererad") {
     nextButton.disabled = true;
     nextButton.textContent = "Slutförd";
+  }
+
+  if (isArchived) {
+    card.classList.add("is-archived");
+    card.draggable = false;
+    nextButton.remove();
+    editButton.remove();
+    dragHandle.remove();
+    archiveButton.dataset.action = "restore";
+    archiveButton.textContent = "Återställ";
+    archiveButton.classList.remove("archive-action");
+  } else {
+    const statusControl = document.createElement("label");
+    const statusLabel = document.createElement("span");
+    const statusSelect = document.createElement("select");
+
+    statusControl.className = "mobile-status-control";
+    statusLabel.textContent = "Flytta till";
+    statusSelect.className = "mobile-status-select";
+    statusSelect.dataset.statusSelect = "";
+    statusSelect.setAttribute("aria-label", `Flytta order för ${order.customer} till status`);
+
+    STATUS_FLOW.forEach((statusName) => {
+      const option = document.createElement("option");
+      option.value = statusName;
+      option.textContent = statusName;
+      option.selected = order.status === statusName;
+      statusSelect.append(option);
+    });
+
+    statusControl.append(statusLabel, statusSelect);
+    card.insertBefore(statusControl, actions);
   }
 
   if (order.notes) {
@@ -602,6 +667,40 @@ function createOrderCard(order, isDraggable = false) {
   return fragment;
 }
 
+function renderArchive() {
+  const orders = state.orders
+    .filter((order) => isArchivedOrder(order))
+    .sort((first, second) => Number(second.archivedAt) - Number(first.archivedAt));
+
+  ui.archiveCount.textContent = String(orders.length);
+  ui.archiveOrders.innerHTML = "";
+
+  if (orders.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "archive-empty";
+    empty.textContent = "Arkivet är tomt.";
+    ui.archiveOrders.append(empty);
+    return;
+  }
+
+  orders.forEach((order) => {
+    ui.archiveOrders.append(createOrderCard(order, false, true));
+  });
+}
+
+async function updateArchiveState(order, archivedAt) {
+  try {
+    await persistOrder({
+      ...order,
+      archivedAt,
+      updatedAt: Date.now()
+    });
+  } catch (error) {
+    console.error(error);
+    window.alert(archivedAt ? "Ordern kunde inte arkiveras." : "Ordern kunde inte återställas.");
+  }
+}
+
 function onDragStart(event) {
   const card = event.target.closest(".order-item");
 
@@ -644,11 +743,99 @@ async function onDrop(event) {
   const column = event.target.closest(".kanban-column");
   const orderId = event.dataTransfer?.getData("text/plain");
   const nextStatusName = column?.dataset.status;
-  const order = state.orders.find((item) => item.id === orderId);
 
   clearDropTargets();
+  await moveOrderToStatus(orderId, nextStatusName);
+}
 
-  if (!order || !nextStatusName || !STATUS_FLOW.includes(nextStatusName) || order.status === nextStatusName) {
+async function onStatusSelectChange(event) {
+  const select = event.target.closest("[data-status-select]");
+
+  if (!(select instanceof HTMLSelectElement)) {
+    return;
+  }
+
+  const card = select.closest(".order-item");
+  await moveOrderToStatus(card?.dataset.orderId, select.value);
+}
+
+function onTouchDragStart(event) {
+  const handle = event.target.closest("[data-drag-handle]");
+
+  if (!handle || (event.pointerType !== "touch" && event.pointerType !== "pen")) {
+    return;
+  }
+
+  const card = handle.closest(".order-item");
+
+  if (!card?.dataset.orderId) {
+    return;
+  }
+
+  event.preventDefault();
+  try {
+    handle.setPointerCapture?.(event.pointerId);
+  } catch {
+    // Synthetic pointer events used by tests do not create an active browser pointer.
+  }
+  touchDrag = {
+    pointerId: event.pointerId,
+    orderId: card.dataset.orderId,
+    handle,
+    nextStatusName: null
+  };
+  card.classList.add("is-dragging");
+  document.body.classList.add("is-touch-dragging");
+}
+
+function onTouchDragMove(event) {
+  if (!touchDrag || event.pointerId !== touchDrag.pointerId) {
+    return;
+  }
+
+  event.preventDefault();
+  const edgeDistance = 76;
+
+  if (event.clientY < edgeDistance) {
+    window.scrollBy(0, -18);
+  } else if (event.clientY > window.innerHeight - edgeDistance) {
+    window.scrollBy(0, 18);
+  }
+
+  const elementAtPointer = document.elementFromPoint(event.clientX, event.clientY);
+  const column = elementAtPointer?.closest(".kanban-column");
+  clearColumnDropTargets();
+  touchDrag.nextStatusName = column?.dataset.status || null;
+  column?.classList.add("is-drop-target");
+}
+
+async function onTouchDragEnd(event) {
+  if (!touchDrag || event.pointerId !== touchDrag.pointerId) {
+    return;
+  }
+
+  event.preventDefault();
+  const { orderId, nextStatusName, handle, pointerId } = touchDrag;
+
+  if (handle.hasPointerCapture?.(pointerId)) {
+    handle.releasePointerCapture(pointerId);
+  }
+  touchDrag = undefined;
+  document.body.classList.remove("is-touch-dragging");
+  clearDropTargets();
+  await moveOrderToStatus(orderId, nextStatusName);
+}
+
+async function moveOrderToStatus(orderId, nextStatusName) {
+  const order = state.orders.find((item) => item.id === orderId);
+
+  if (
+    !order ||
+    isArchivedOrder(order) ||
+    !nextStatusName ||
+    !STATUS_FLOW.includes(nextStatusName) ||
+    order.status === nextStatusName
+  ) {
     return;
   }
 
@@ -664,10 +851,14 @@ async function onDrop(event) {
   }
 }
 
-function clearDropTargets() {
+function clearColumnDropTargets() {
   document.querySelectorAll(".kanban-column.is-drop-target").forEach((column) => {
     column.classList.remove("is-drop-target");
   });
+}
+
+function clearDropTargets() {
+  clearColumnDropTargets();
 
   document.querySelectorAll(".order-item.is-dragging").forEach((card) => {
     card.classList.remove("is-dragging");
@@ -675,8 +866,9 @@ function clearDropTargets() {
 }
 
 function renderSummary() {
-  const total = state.orders.length;
-  const done = state.orders.filter((order) => order.status === "Klar" || order.status === "Levererad").length;
+  const orders = activeOrders();
+  const total = orders.length;
+  const done = orders.filter((order) => order.status === "Klar" || order.status === "Levererad").length;
   const active = total - done;
 
   ui.totalCount.textContent = String(total);
@@ -709,11 +901,21 @@ function updateShippingEstimate() {
 }
 
 function visibleOrders() {
+  const orders = activeOrders();
+
   if (state.currentFilter === "Alla") {
-    return state.orders;
+    return orders;
   }
 
-  return state.orders.filter((order) => order.status === state.currentFilter);
+  return orders.filter((order) => order.status === state.currentFilter);
+}
+
+function activeOrders() {
+  return state.orders.filter((order) => !isArchivedOrder(order));
+}
+
+function isArchivedOrder(order) {
+  return Number(order.archivedAt) > 0;
 }
 
 function setDefaultDate() {
@@ -804,6 +1006,7 @@ function normalizeLegacyOrder(order) {
     moderationUpdatedAt: Number(order.moderationUpdatedAt) || now,
     source: asString(order.source) || "legacy",
     customerId: order.customerId || null,
+    archivedAt: Number(order.archivedAt) || null,
     createdAt: Number(order.createdAt) || Number(order.updatedAt) || now,
     updatedAt: Number(order.updatedAt) || now
   };
