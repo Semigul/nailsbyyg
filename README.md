@@ -219,6 +219,7 @@ Skriv `/` i chatten i VS Code för att köra promptarna.
 
 - `index.html`: struktur
 - `kund.html`: kundens beställningssida
+- `loppis.html`: separat kundsida för begagnade saker
 - `styles.css`: gemensam mobil-först design
 - `app.js`: adminflöde och Firestore-synk
 - `customer.js`: kundbeställningar

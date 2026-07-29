@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { readFile } from "node:fs/promises";
 import {
   installFirebaseMock,
   readMockMarketplaceItems,
@@ -49,6 +50,19 @@ test("marknadsplatsköp reserveras, blir en ny order och hanteras med Swish", as
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/kund.html");
+  const marketplaceCard = page.locator(".marketplace-card");
+  const marketplaceLink = marketplaceCard.getByRole("link", {
+    name: "Se sakerna i Loppishörnan"
+  });
+  await expect(marketplaceCard.getByRole("link")).toHaveCount(1);
+  await expect(page.locator("#marketplaceGrid")).toHaveCount(0);
+  await marketplaceLink.click();
+  await expect(page).toHaveURL(/\/loppis\.html$/);
+  await expect(page.getByRole("heading", {
+    level: 1,
+    name: "Begagnat som söker ett nytt hem"
+  })).toBeVisible();
+
   const customerItem = page.locator(".marketplace-item");
   await expect(customerItem).toContainText("Rosa skridskor");
   const buyButtonBox = await customerItem.getByRole("button", { name: "Beställ" }).boundingBox();
@@ -95,4 +109,15 @@ test("marknadsplatsköp reserveras, blir en ny order och hanteras med Swish", as
   await page.getByLabel("Betalningsstatus").selectOption("Återbetald");
   await page.getByRole("button", { name: "Spara order" }).click();
   expect(await readMockMarketplaceItems(page)).toMatchObject([{ status: "available" }]);
+});
+
+test("Firestore-reglerna låter admin synka alla loppisvaror men visar bara tillgängliga varor offentligt", async () => {
+  const rules = await readFile(new URL("../../firestore.rules", import.meta.url), "utf8");
+
+  expect(rules).toContain(
+    'allow read: if isAdmin() || resource.data.status == "available";'
+  );
+  expect(rules).not.toContain(
+    'allow read: if resource.data.status in ["available", "reserved", "sold"];'
+  );
 });

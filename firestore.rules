@@ -156,7 +156,7 @@ service cloud.firestore {
     }
 
     match /marketplaceItems/{itemId} {
-      allow read: if resource.data.status in ["available", "reserved", "sold"];
+      allow read: if isAdmin() || resource.data.status == "available";
       allow create, delete: if isAdmin();
       allow update: if isAdmin()
         || (

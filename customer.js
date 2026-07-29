@@ -45,19 +45,27 @@ let unsubscribeMarketplace;
 init();
 
 async function init() {
-  setMinimumDate();
-  ui.form.addEventListener("submit", onSubmitOrder);
-  ui.newOrderButton.addEventListener("click", resetCustomerForm);
-  ui.deliveryMethod.addEventListener("change", updateAddressRequirement);
-  ui.designImages.addEventListener("change", onDesignImagesChange);
-  ui.imagePreview.addEventListener("click", onPreviewAction);
-  ui.marketplaceGrid.addEventListener("click", onMarketplaceAction);
-  ui.marketplaceForm.addEventListener("submit", onSubmitMarketplaceOrder);
-  ui.marketplaceDelivery.addEventListener("change", updateMarketplaceAddressRequirement);
-  ui.cancelMarketplaceOrder.addEventListener("click", closeMarketplaceCheckout);
-  ui.closeMarketplaceSuccess.addEventListener("click", closeMarketplaceCheckout);
-  updateAddressRequirement();
-  updateMarketplaceAddressRequirement();
+  const hasCustomerOrderForm = Boolean(ui.form);
+  const hasMarketplace = Boolean(ui.marketplaceGrid && ui.marketplaceForm);
+
+  if (hasCustomerOrderForm) {
+    setMinimumDate();
+    ui.form.addEventListener("submit", onSubmitOrder);
+    ui.newOrderButton.addEventListener("click", resetCustomerForm);
+    ui.deliveryMethod.addEventListener("change", updateAddressRequirement);
+    ui.designImages.addEventListener("change", onDesignImagesChange);
+    ui.imagePreview.addEventListener("click", onPreviewAction);
+    updateAddressRequirement();
+  }
+
+  if (hasMarketplace) {
+    ui.marketplaceGrid.addEventListener("click", onMarketplaceAction);
+    ui.marketplaceForm.addEventListener("submit", onSubmitMarketplaceOrder);
+    ui.marketplaceDelivery.addEventListener("change", updateMarketplaceAddressRequirement);
+    ui.cancelMarketplaceOrder.addEventListener("click", closeMarketplaceCheckout);
+    ui.closeMarketplaceSuccess.addEventListener("click", closeMarketplaceCheckout);
+    updateMarketplaceAddressRequirement();
+  }
 
   try {
     firebase = await getFirebaseServices();
@@ -68,14 +76,28 @@ async function init() {
       customerUser = credential.user;
     }
 
-    ui.connectionStatus.hidden = true;
-    ui.form.hidden = false;
-    subscribeToMarketplace();
+    if (hasCustomerOrderForm) {
+      ui.connectionStatus.hidden = true;
+      ui.form.hidden = false;
+    }
+
+    if (hasMarketplace) {
+      subscribeToMarketplace();
+    }
   } catch (error) {
     console.error(error);
-    ui.connectionStatus.classList.add("is-error");
-    ui.connectionStatus.textContent =
-      "Beställningssystemet kunde inte ansluta. Försök igen senare eller kontakta Nailsbyy.g.";
+
+    if (ui.connectionStatus) {
+      ui.connectionStatus.classList.add("is-error");
+      ui.connectionStatus.textContent =
+        "Beställningssystemet kunde inte ansluta. Försök igen senare eller kontakta Nailsbyy.g.";
+    }
+
+    if (ui.marketplaceStatus) {
+      ui.marketplaceStatus.classList.add("is-error");
+      ui.marketplaceStatus.textContent =
+        "Loppishörnan kunde inte ansluta. Försök igen lite senare.";
+    }
   }
 }
 

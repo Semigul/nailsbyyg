@@ -28,86 +28,9 @@
         <p class="section-kicker">Loppishörnan</p>
         <h2 id="marketplaceTitle">Begagnat som söker ett nytt hem</h2>
         <p class="marketplace-intro">
-          Här kan du hitta fina saker som går att köpa med Swish. När du beställer reserveras
-          saken åt dig tills betalningen är bekräftad.
+          Kika in bland alla begagnade saker som finns till salu och beställ enkelt med Swish.
         </p>
-        <div id="marketplaceStatus" class="connection-notice" role="status">Hämtar saker…</div>
-        <div id="marketplaceGrid" class="marketplace-grid" hidden></div>
-
-        <form id="marketplaceOrderForm" class="marketplace-order-form" hidden>
-          <input type="hidden" id="marketplaceItemId" name="marketplaceItemId" />
-          <div class="marketplace-checkout-heading">
-            <img id="marketplaceCheckoutImage" alt="" />
-            <div>
-              <p class="section-kicker">Din beställning</p>
-              <h3 id="marketplaceCheckoutTitle"></h3>
-              <strong id="marketplaceCheckoutPrice"></strong>
-            </div>
-          </div>
-
-          <div class="two-col customer-contact-grid">
-            <div>
-              <label for="marketplaceCustomerName">Vem beställer?</label>
-              <input
-                id="marketplaceCustomerName"
-                name="customer"
-                type="text"
-                maxlength="40"
-                autocomplete="name"
-                required
-              />
-            </div>
-            <div>
-              <label for="marketplaceCustomerContact">Hur når vi dig?</label>
-              <input
-                id="marketplaceCustomerContact"
-                name="contact"
-                type="text"
-                maxlength="100"
-                autocomplete="email"
-                required
-              />
-            </div>
-          </div>
-
-          <label for="marketplaceDelivery">Hur vill du få varan?</label>
-          <select id="marketplaceDelivery" name="deliveryMethod" required>
-            <option value="Postas">Postas</option>
-            <option value="Hämtas">Hämtas</option>
-          </select>
-
-          <div id="marketplaceAddressGroup">
-            <label for="marketplaceAddress">Vart ska varan skickas?</label>
-            <textarea
-              id="marketplaceAddress"
-              name="address"
-              rows="3"
-              maxlength="250"
-              autocomplete="street-address"
-              required
-            ></textarea>
-          </div>
-
-          <p class="marketplace-swish-note">
-            <strong>Betalning med Swish</strong>
-            När du skickar beställningen reserveras saken åt dig. Du får sedan Swish-uppgifterna
-            och köpet blir klart när betalningen har bekräftats.
-          </p>
-          <div class="actions">
-            <button type="submit" class="primary">Reservera och beställ</button>
-            <button type="button" class="ghost" id="cancelMarketplaceOrder">Avbryt</button>
-          </div>
-          <p id="marketplaceFormMessage" class="form-message" aria-live="polite"></p>
-        </form>
-
-        <div id="marketplaceSuccess" class="customer-success" hidden>
-          <span class="success-mark" aria-hidden="true">✓</span>
-          <p class="section-kicker">Varan är reserverad</p>
-          <h2>Din beställning är skapad!</h2>
-          <p id="marketplaceSwishInstructions"></p>
-          <p id="marketplaceOrderReference" class="order-reference"></p>
-          <button type="button" class="ghost" id="closeMarketplaceSuccess">Tillbaka till marknadsplatsen</button>
-        </div>
+        <a class="primary marketplace-page-link" href="./loppis.html">Se sakerna i Loppishörnan</a>
       </section>
 
       <section class="card customer-order-card">

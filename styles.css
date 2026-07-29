@@ -1053,6 +1053,10 @@ textarea {
   background: rgba(255, 255, 255, 0.95);
 }
 
+.marketplace-page .customer-shell {
+  width: min(64rem, 100%);
+}
+
 .marketplace-card h2 {
   margin: 0.2rem 0 0.45rem;
 }
@@ -1061,6 +1065,27 @@ textarea {
   margin: 0 0 1rem;
   color: var(--muted);
   line-height: 1.55;
+}
+
+.marketplace-page-link {
+  display: inline-flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  text-decoration: none;
+}
+
+.marketplace-footer {
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.marketplace-footer a {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
 }
 
 .marketplace-grid {
