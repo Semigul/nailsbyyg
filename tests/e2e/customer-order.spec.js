@@ -19,6 +19,13 @@ test("startsidan leder kunden till beställningsformuläret", async ({ page }) =
   await expect(page.locator(".customer-delivery-time")).not.toContainText("💅");
   await expect(page.locator("#marketplacePromo")).toBeHidden();
   await expect(page.locator(".brand-logo")).toHaveCSS("border-top-width", "0px");
+  await expect(page.locator(".brand-logo")).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(page.locator(".brand-logo")).toHaveCSS("box-shadow", "none");
+  const logoMarkup = await page.evaluate(async () => {
+    const logoUrl = document.querySelector(".brand-logo img")?.src;
+    return logoUrl ? (await fetch(logoUrl)).text() : "";
+  });
+  expect(logoMarkup).not.toMatch(/<rect[^>]*fill=["']#fff9f6["']/i);
   await expect(page.locator("#customerOrderForm")).toBeVisible();
 });
 

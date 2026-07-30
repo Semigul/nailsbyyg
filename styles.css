@@ -85,7 +85,7 @@ button {
   overflow: hidden;
   border: 0;
   border-radius: 1.2rem;
-  background: #fff9f6;
+  background: transparent;
   box-shadow: none;
 }
 
