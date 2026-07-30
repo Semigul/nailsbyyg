@@ -16,6 +16,7 @@ test("startsidan leder kunden till beställningsformuläret", async ({ page }) =
   await expect(page).toHaveURL(/\/kund\.html$/);
   await expect(page.getByRole("heading", { name: "Vad vill du beställa?" })).toBeVisible();
   await expect(page.locator(".customer-order-card > .section-kicker")).toHaveText("Nagelhörnan");
+  await expect(page.locator(".customer-delivery-time")).not.toContainText("💅");
   await expect(page.locator("#customerOrderForm")).toBeVisible();
 });
 
