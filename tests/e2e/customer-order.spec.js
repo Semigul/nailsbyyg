@@ -17,6 +17,8 @@ test("startsidan leder kunden till beställningsformuläret", async ({ page }) =
   await expect(page.getByRole("heading", { name: "Vad vill du beställa?" })).toBeVisible();
   await expect(page.locator(".customer-order-card > .section-kicker")).toHaveText("Nagelhörnan");
   await expect(page.locator(".customer-delivery-time")).not.toContainText("💅");
+  await expect(page.locator("#marketplacePromo")).toBeHidden();
+  await expect(page.locator(".brand-logo")).toHaveCSS("border-top-width", "0px");
   await expect(page.locator("#customerOrderForm")).toBeVisible();
 });
 
@@ -31,6 +33,44 @@ test("adminlänken ligger diskret längst ned på kundsidan", async ({ page }) =
   await expect(adminLink).toBeVisible();
   expect(adminLinkBox?.y).toBeGreaterThan((orderCardBox?.y || 0) + (orderCardBox?.height || 0));
   await expect(adminLink).toHaveCSS("opacity", "0.42");
+});
+
+test("kunden kan läsa integritetspolicy och köp- och beställningsvillkor", async ({ page }) => {
+  await page.goto("/kund.html");
+
+  const privacyLink = page.getByRole("link", { name: "Integritetspolicy" });
+  const termsLink = page.getByRole("link", { name: "Köp- och beställningsvillkor" });
+
+  await expect(privacyLink).toBeVisible();
+  await expect(termsLink).toBeVisible();
+  expect((await privacyLink.boundingBox())?.height).toBeGreaterThanOrEqual(44);
+  expect((await termsLink.boundingBox())?.height).toBeGreaterThanOrEqual(44);
+  await expect(privacyLink).toHaveCSS("opacity", "0.62");
+  await expect(privacyLink).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(privacyLink).toHaveCSS("border-top-width", "0px");
+
+  await privacyLink.click();
+  await expect(page).toHaveURL(/\/integritet\.html$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Integritetspolicy" })).toBeVisible();
+  await expect(page.locator(".legal-updated")).toHaveText("Senast uppdaterad: 30 juli 2026");
+  await expect(page.locator(".legal-card section")).toHaveCount(12);
+  await expect(page.locator("#barn")).toContainText(
+    "En kund under 18 år måste göra beställningen med sin vårdnadshavares godkännande"
+  );
+  await expect(page.locator("body")).toHaveJSProperty("scrollWidth", 390);
+
+  await page.getByRole("link", { name: "Läs köp- och beställningsvillkoren" }).click();
+  await expect(page).toHaveURL(/\/kopvillkor\.html$/);
+  await expect(page.getByRole("heading", {
+    level: 1,
+    name: "Köp- och beställningsvillkor"
+  })).toBeVisible();
+  await expect(page.locator(".legal-card section")).toHaveCount(14);
+  await expect(page.locator("#leverans")).toContainText("Beräknad leveranstid: 1–5 veckor");
+  await expect(page.locator("body")).toHaveJSProperty("scrollWidth", 390);
+
+  await page.getByRole("link", { name: "Tillbaka till beställningen" }).click();
+  await expect(page).toHaveURL(/\/kund\.html$/);
 });
 
 test("filväljaren visar valda bilder och kan ta bort dem", async ({ page }) => {

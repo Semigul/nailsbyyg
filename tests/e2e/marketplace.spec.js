@@ -3,7 +3,8 @@ import { readFile } from "node:fs/promises";
 import {
   installFirebaseMock,
   readMockMarketplaceItems,
-  readMockOrders
+  readMockOrders,
+  readMockPublicSettings
 } from "./support/firebase-mock.js";
 
 const ONE_PIXEL_PNG = Buffer.from(
@@ -32,6 +33,28 @@ test("marknadsplatsköp reserveras, blir en ny order och hanteras med Swish", as
   await page.getByRole("button", { name: "Logga in" }).click();
   await expect(page.locator("#connectionBadge")).toHaveText("Firebase synkad");
 
+  await expect(page.locator("#marketplaceItemForm")).toHaveCount(0);
+  const marketplaceAdminLink = page.getByRole("link", {
+    name: "Hantera begagnade saker"
+  });
+  const visibilityToggle = page.getByRole("switch", {
+    name: "Visa Loppishörnan för kunder"
+  });
+  await expect(marketplaceAdminLink).toBeVisible();
+  await expect(visibilityToggle).not.toBeChecked();
+  await visibilityToggle.check();
+  await expect(page.locator("#marketplaceVisibilityMessage")).toHaveText(
+    "Loppishörnan är synlig för kunder."
+  );
+  expect(await readMockPublicSettings(page)).toMatchObject({
+    marketplace: { visible: true }
+  });
+
+  await marketplaceAdminLink.click();
+  await expect(page).toHaveURL(/\/loppis-admin\.html$/);
+  await expect(page.locator("#marketplaceAdminAuthCard")).toBeHidden();
+  await expect(page.locator("#marketplaceAdminConnectionBadge")).toHaveText("Firebase synkad");
+
   const itemForm = page.locator("#marketplaceItemForm");
   await itemForm.getByLabel("Namn på varan").fill("Rosa skridskor");
   await itemForm.getByLabel("Beskrivning").fill("Fina och använda några gånger.");
@@ -47,15 +70,26 @@ test("marknadsplatsköp reserveras, blir en ny order och hanteras med Swish", as
   const adminItem = page.locator(".marketplace-admin-item");
   await expect(adminItem).toContainText("Rosa skridskor");
   await expect(adminItem).toContainText("Tillgänglig");
+  await adminItem.getByRole("button", { name: "Redigera" }).click();
+  await itemForm.getByLabel("Beskrivning").fill("Fina och bara använda några gånger.");
+  await itemForm.getByRole("button", { name: "Spara ändringar" }).click();
+  await expect.poll(async () => (await readMockMarketplaceItems(page))[0]?.description)
+    .toBe("Fina och bara använda några gånger.");
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/kund.html");
-  const marketplaceCard = page.locator(".marketplace-card");
+  const marketplaceCard = page.locator("#marketplacePromo");
   const marketplaceLink = marketplaceCard.getByRole("link", {
     name: "Se sakerna i Loppishörnan"
   });
+  await expect(marketplaceCard).toBeVisible();
   await expect(marketplaceCard.getByRole("link")).toHaveCount(1);
   await expect(page.locator("#marketplaceGrid")).toHaveCount(0);
+  expect(
+    await marketplaceLink.evaluate((element) =>
+      Number.parseFloat(getComputedStyle(element).borderRadius)
+    )
+  ).toBeGreaterThanOrEqual(13);
   await marketplaceLink.click();
   await expect(page).toHaveURL(/\/loppis\.html$/);
   await expect(page.getByRole("heading", {
@@ -111,12 +145,61 @@ test("marknadsplatsköp reserveras, blir en ny order och hanteras med Swish", as
   expect(await readMockMarketplaceItems(page)).toMatchObject([{ status: "available" }]);
 });
 
+test("Loppishörnan är dold som standard och adminsidan är inloggningsskyddad", async ({
+  page
+}) => {
+  await page.goto("/kund.html");
+  await expect(page.locator("#marketplacePromo")).toBeHidden();
+  await expect(page.getByRole("link", { name: "Se sakerna i Loppishörnan" })).toBeHidden();
+
+  await page.goto("/loppis.html");
+  await expect(page.locator("#marketplaceStatus")).toHaveText(
+    "Loppishörnan är stängd just nu. Titta gärna in igen!"
+  );
+  await expect(page.locator("#marketplaceGrid")).toBeHidden();
+
+  await page.goto("/loppis-admin.html");
+  await expect(page.locator("#marketplaceAdminAuthCard")).toBeVisible();
+  await expect(page.locator(".marketplace-admin-content").first()).toBeHidden();
+
+  await page.getByLabel("E-post", { exact: true }).fill("admin@example.com");
+  await page.getByLabel("Lösenord").fill("hemligt123");
+  await page.getByRole("button", { name: "Logga in" }).click();
+
+  await expect(page.locator("#marketplaceAdminAuthCard")).toBeHidden();
+  await expect(page.locator("#marketplaceAdminConnectionBadge")).toHaveText("Firebase synkad");
+  await expect(page.locator("#marketplaceItemForm")).toBeVisible();
+  await expect(page.locator("body")).toHaveJSProperty("scrollWidth", 390);
+
+  const itemForm = page.locator("#marketplaceItemForm");
+  await itemForm.getByLabel("Namn på varan").fill("Testjacka");
+  await itemForm.getByLabel("Beskrivning").fill("En vara som ska kunna tas bort.");
+  await itemForm.getByLabel("Vad kostar varan? (kr)").fill("50");
+  await itemForm.getByLabel("Frakt (kr)").fill("0");
+  await itemForm.getByLabel("Bild på varan").setInputFiles({
+    name: "jacka.png",
+    mimeType: "image/png",
+    buffer: ONE_PIXEL_PNG
+  });
+  await itemForm.getByRole("button", { name: "Publicera vara" }).click();
+  await expect(page.locator(".marketplace-admin-item")).toContainText("Testjacka");
+
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.locator(".marketplace-admin-item")
+    .getByRole("button", { name: "Ta bort" })
+    .click();
+  await expect(page.locator(".marketplace-admin-item")).toHaveCount(0);
+  expect(await readMockMarketplaceItems(page)).toHaveLength(0);
+});
+
 test("Firestore-reglerna låter admin synka alla loppisvaror men visar bara tillgängliga varor offentligt", async () => {
   const rules = await readFile(new URL("../../firestore.rules", import.meta.url), "utf8");
 
-  expect(rules).toContain(
-    'allow read: if isAdmin() || resource.data.status == "available";'
-  );
+  expect(rules).toContain("match /publicSettings/{settingId}");
+  expect(rules).toContain('allow get: if settingId == "marketplace";');
+  expect(rules).toContain('resource.data.status == "available"');
+  expect(rules).toContain("/documents/publicSettings/marketplace");
+  expect(rules).toContain(".data.visible == true");
   expect(rules).not.toContain(
     'allow read: if resource.data.status in ["available", "reserved", "sold"];'
   );

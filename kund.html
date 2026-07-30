@@ -24,7 +24,12 @@
         <p>Fyll i formuläret så hamnar din förfrågan direkt hos Nailsbyy.g.</p>
       </header>
 
-      <section class="card marketplace-card" aria-labelledby="marketplaceTitle">
+      <section
+        class="card marketplace-card"
+        id="marketplacePromo"
+        aria-labelledby="marketplaceTitle"
+        hidden
+      >
         <p class="section-kicker">Loppishörnan</p>
         <h2 id="marketplaceTitle">Begagnat som söker ett nytt hem</h2>
         <p class="marketplace-intro">
@@ -169,8 +174,14 @@
         </div>
       </section>
 
-      <footer class="customer-footer-access">
-        <a class="customer-admin-link" href="./admin.html" aria-label="Öppna admininloggning">Admin</a>
+      <footer class="customer-footer">
+        <nav class="customer-legal-links" aria-label="Juridisk information">
+          <a href="./integritet.html">Integritetspolicy</a>
+          <a href="./kopvillkor.html">Köp- och beställningsvillkor</a>
+        </nav>
+        <div class="customer-footer-access">
+          <a class="customer-admin-link" href="./admin.html" aria-label="Öppna admininloggning">Admin</a>
+        </div>
       </footer>
     </main>
 

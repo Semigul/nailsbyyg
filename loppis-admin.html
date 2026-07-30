@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#fff9f6" />
+    <title>Hantera Loppishörnan – Nailsbyy.g</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body class="marketplace-admin-page">
+    <main class="app-shell marketplace-admin-shell">
+      <header class="hero">
+        <div class="brand-logo">
+          <img src="./assets/logos/05-script-accent.svg" alt="Nailsbyy.g" />
+        </div>
+        <div class="hero-copy">
+          <p class="eyebrow">Admin · Loppishörnan</p>
+          <div class="admin-session">
+            <span class="connection-badge" id="marketplaceAdminConnectionBadge">
+              Ansluter till Firebase…
+            </span>
+            <a class="customer-view-link" href="./admin.html">Till ordrarna</a>
+            <a class="customer-view-link" href="./loppis.html">Förhandsvisa loppissidan</a>
+            <button
+              type="button"
+              class="session-button"
+              id="marketplaceAdminSignOut"
+              hidden
+            >Logga ut</button>
+          </div>
+        </div>
+      </header>
+
+      <section class="card auth-card" id="marketplaceAdminAuthCard">
+        <p class="section-kicker">Skyddad adminvy</p>
+        <h1>Logga in</h1>
+        <p class="auth-intro">Använd samma adminkonto som på ordersidan.</p>
+        <form id="marketplaceAdminLoginForm">
+          <label for="marketplaceAdminEmail">E-post</label>
+          <input
+            id="marketplaceAdminEmail"
+            name="email"
+            type="email"
+            autocomplete="username"
+            required
+          />
+
+          <label for="marketplaceAdminPassword">Lösenord</label>
+          <input
+            id="marketplaceAdminPassword"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            minlength="6"
+            required
+          />
+
+          <label class="auth-persistence" for="marketplaceAdminRememberMe">
+            <input
+              id="marketplaceAdminRememberMe"
+              name="rememberMe"
+              type="checkbox"
+              checked
+            />
+            <span>
+              <strong>Håll mig inloggad</strong>
+              <small>Välj detta endast på en privat enhet.</small>
+            </span>
+          </label>
+
+          <button
+            type="submit"
+            class="primary auth-submit"
+            id="marketplaceAdminLoginButton"
+            disabled
+          >Logga in</button>
+          <p id="marketplaceAdminAuthMessage" class="form-message" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <section class="card marketplace-admin-form-card marketplace-admin-content" hidden>
+        <p class="section-kicker">Loppishörnan</p>
+        <h1>Publicera en begagnad sak</h1>
+        <p class="auth-intro">
+          Lägg upp nya saker eller ändra en vara som redan finns publicerad.
+        </p>
+
+        <form id="marketplaceItemForm">
+          <input type="hidden" id="marketplaceAdminItemId" />
+
+          <label for="marketplaceAdminTitle">Namn på varan</label>
+          <input id="marketplaceAdminTitle" name="title" type="text" maxlength="80" required />
+
+          <label for="marketplaceAdminDescription">Beskrivning</label>
+          <textarea
+            id="marketplaceAdminDescription"
+            name="description"
+            rows="4"
+            maxlength="500"
+            required
+          ></textarea>
+
+          <div class="two-col">
+            <div>
+              <label for="marketplaceAdminPrice">Vad kostar varan? (kr)</label>
+              <input
+                id="marketplaceAdminPrice"
+                name="price"
+                type="number"
+                min="0"
+                step="1"
+                required
+              />
+            </div>
+            <div>
+              <label for="marketplaceAdminShipping">Frakt (kr)</label>
+              <input
+                id="marketplaceAdminShipping"
+                name="shippingCost"
+                type="number"
+                min="0"
+                step="1"
+                value="0"
+                required
+              />
+            </div>
+          </div>
+
+          <label for="marketplaceAdminImage">Bild på varan</label>
+          <input id="marketplaceAdminImage" name="image" type="file" accept="image/*" />
+          <p class="upload-help">Bilden lagras i Cloudinary. Max 5 MB.</p>
+          <img
+            id="marketplaceAdminImagePreview"
+            class="marketplace-admin-preview"
+            alt=""
+            hidden
+          />
+
+          <label for="marketplaceAdminStatus">Status</label>
+          <select id="marketplaceAdminStatus" name="itemStatus" required>
+            <option value="available">Tillgänglig</option>
+            <option value="reserved">Reserverad</option>
+            <option value="sold">Såld</option>
+          </select>
+
+          <div class="actions">
+            <button type="submit" class="primary" id="marketplaceAdminSave">
+              Publicera vara
+            </button>
+            <button type="button" class="ghost" id="marketplaceAdminReset">Rensa</button>
+          </div>
+          <p id="marketplaceAdminMessage" class="form-message" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <section class="card marketplace-admin-list-card marketplace-admin-content" hidden>
+        <div class="orders-heading">
+          <div>
+            <p class="section-kicker">Publicerat</p>
+            <h2>Alla begagnade saker</h2>
+          </div>
+        </div>
+        <div id="marketplaceAdminList" class="marketplace-admin-list" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <script type="module" src="./marketplace-admin.js"></script>
+  </body>
+</html>

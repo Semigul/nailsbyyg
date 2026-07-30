@@ -11,6 +11,8 @@ En mobilvänlig admin- och kundapp för beställningar hos Nailsbyy.g.
 - Kanban-board och listvy
 - Kundsida för nya beställningar
 - Kundsida med bilduppladdning för önskad design
+- Separata sidor för integritetspolicy och köp- och beställningsvillkor
+- Säker kundlänk med aktuell order-, pris- och leveranssammanställning
 - Realtidssynk med Firebase Firestore
 - Marknadsplats för begagnade saker med bilder i Cloudinary
 - Säker reservation som skapar en ny order i adminvyn
@@ -33,6 +35,8 @@ python3 -m http.server 5500
 Kundvy (standard): `http://localhost:5500/` eller `http://localhost:5500/kund.html`
 
 Adminvy: `http://localhost:5500/admin.html`
+
+Loppisadmin: `http://localhost:5500/loppis-admin.html`
 
 ## Automatiska tester
 
@@ -106,6 +110,17 @@ Mer detaljer finns i `functions/README.md`.
 
 Kunder autentiseras anonymt och får endast skapa validerade orderdokument. Endast användare som har ett dokument i `admins` får läsa, ändra eller radera ordrar.
 
+### Kundlänkar för ordersammanställning
+
+Admin kan trycka på `Kundlänk` på en order och skicka länken direkt till kunden. Kunden
+behöver inget konto. Sammanställningen uppdateras automatiskt när ordern ändras och visar
+endast de kunduppgifter som behövs för ordern. Kontaktuppgifter och Swish-referens delas inte.
+
+Varje länk har en slumpad 48 tecken lång nyckel, gäller i 90 dagar och kan stängas av från
+adminvyn. Nyckeln ligger i länkens fragment efter `#`, så GitHub Pages får inte nyckeln i
+sidförfrågan. Firestore tillåter bara läsning av det exakta dokumentet och förbjuder publik
+listning av samlingen `orderShares`.
+
 ## Cloudinary (bilduppladdning utan Firebase Storage-plan)
 
 Ja, du behöver ett Cloudinary-konto för att kunna ladda upp kundbilder.
@@ -148,8 +163,13 @@ Alternativt som objekt under nyckeln `cloudinary`.
 
 ## Marknadsplats och Swish
 
-Admin kan publicera begagnade saker längst ned i `admin.html`. Bilden laddas upp till Cloudinary
-och övriga uppgifter sparas i Firestore-samlingen `marketplaceItems`.
+Längst ned i `admin.html` finns en länk till den skyddade sidan `loppis-admin.html`, där admin
+kan publicera och redigera begagnade saker. Bilden laddas upp till Cloudinary och övriga
+uppgifter sparas i Firestore-samlingen `marketplaceItems`.
+
+På ordersidan finns även en toggle för synligheten. Loppishörnan är dold som standard. När
+togglen aktiveras visas länken på `kund.html` och den publika sidan `loppis.html` öppnas för
+kunder. Inställningen sparas i dokumentet `publicSettings/marketplace`.
 
 När en kund beställer en tillgänglig vara sker reservationen och orderskapandet i samma
 Firestore-transaktion. Ordern får status `Ny`, typen `marketplace` och betalningsstatus
@@ -219,10 +239,16 @@ Skriv `/` i chatten i VS Code för att köra promptarna.
 
 - `index.html`: struktur
 - `kund.html`: kundens beställningssida
+- `integritet.html`: integritetspolicy länkad från kundsidan
+- `kopvillkor.html`: köp- och beställningsvillkor länkade från kundsidan
+- `bestallning.html`: skrivskyddad ordersammanställning via säker kundlänk
 - `loppis.html`: separat kundsida för begagnade saker
+- `loppis-admin.html`: skyddad sida för att hantera Loppishörnan
 - `styles.css`: gemensam mobil-först design
 - `app.js`: adminflöde och Firestore-synk
 - `customer.js`: kundbeställningar
+- `marketplace-admin.js`: publicering och redigering av begagnade saker
+- `order-summary.js`: hämtar och visar delad ordersammanställning
 - `firebase-client.mjs`: gemensam Firebase-anslutning
 - `firestore.rules`: produktionsregler för Firestore
 - `firebase.config.sample.js`: mall för Firebase-konfiguration

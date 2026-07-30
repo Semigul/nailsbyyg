@@ -5,10 +5,11 @@ const STORAGE_KEY = "orderkompis.orders.v1";
 const VIEW_KEY = "orderkompis.view.v1";
 const STATUS_FLOW = ["Ny", "Pågår", "Klar", "Levererad"];
 const filterLabels = ["Alla", ...STATUS_FLOW];
+const SHARE_TOKEN_BYTES = 24;
+const SHARE_LIFETIME_MS = 90 * 24 * 60 * 60 * 1000;
 
 const state = {
   orders: [],
-  marketplaceItems: [],
   currentFilter: "Alla",
   currentView: loadView()
 };
@@ -56,25 +57,22 @@ const ui = {
   activeCount: document.getElementById("activeCount"),
   doneCount: document.getElementById("doneCount"),
   orderTemplate: document.getElementById("orderTemplate"),
-  marketplaceForm: document.getElementById("marketplaceItemForm"),
-  marketplaceItemId: document.getElementById("marketplaceAdminItemId"),
-  marketplaceTitle: document.getElementById("marketplaceAdminTitle"),
-  marketplaceDescription: document.getElementById("marketplaceAdminDescription"),
-  marketplacePrice: document.getElementById("marketplaceAdminPrice"),
-  marketplaceShipping: document.getElementById("marketplaceAdminShipping"),
-  marketplaceImage: document.getElementById("marketplaceAdminImage"),
-  marketplaceImagePreview: document.getElementById("marketplaceAdminImagePreview"),
-  marketplaceStatus: document.getElementById("marketplaceAdminStatus"),
-  marketplaceSave: document.getElementById("marketplaceAdminSave"),
-  marketplaceReset: document.getElementById("marketplaceAdminReset"),
-  marketplaceMessage: document.getElementById("marketplaceAdminMessage"),
-  marketplaceList: document.getElementById("marketplaceAdminList")
+  customerSharePanel: document.getElementById("customerSharePanel"),
+  customerShareDescription: document.getElementById("customerShareDescription"),
+  customerShareUrl: document.getElementById("customerShareUrl"),
+  copyCustomerShare: document.getElementById("copyCustomerShare"),
+  openCustomerShare: document.getElementById("openCustomerShare"),
+  revokeCustomerShare: document.getElementById("revokeCustomerShare"),
+  closeCustomerShare: document.getElementById("closeCustomerShare"),
+  customerShareMessage: document.getElementById("customerShareMessage"),
+  marketplaceVisibilityToggle: document.getElementById("marketplaceVisibilityToggle"),
+  marketplaceVisibilityMessage: document.getElementById("marketplaceVisibilityMessage")
 };
 
 let firebase;
 let unsubscribeOrders;
-let unsubscribeMarketplace;
 let touchDrag;
+let currentSharedOrderId = "";
 
 init();
 
@@ -112,10 +110,10 @@ function bindEvents() {
   ui.kanbanBoard.addEventListener("pointerup", onTouchDragEnd);
   ui.kanbanBoard.addEventListener("pointercancel", onTouchDragEnd);
   ui.viewButtons.forEach((button) => button.addEventListener("click", onViewChange));
-  ui.marketplaceForm.addEventListener("submit", onSaveMarketplaceItem);
-  ui.marketplaceReset.addEventListener("click", resetMarketplaceForm);
-  ui.marketplaceImage.addEventListener("change", previewMarketplaceImage);
-  ui.marketplaceList.addEventListener("click", onMarketplaceAdminAction);
+  ui.copyCustomerShare.addEventListener("click", copyCustomerShareLink);
+  ui.revokeCustomerShare.addEventListener("click", revokeCustomerShareLink);
+  ui.closeCustomerShare.addEventListener("click", closeCustomerSharePanel);
+  ui.marketplaceVisibilityToggle.addEventListener("change", onMarketplaceVisibilityChange);
 }
 
 async function connectAdmin() {
@@ -131,7 +129,6 @@ async function connectAdmin() {
         }
 
         stopOrderSubscription();
-        stopMarketplaceSubscription();
         showAdmin(false);
         return;
       }
@@ -206,8 +203,8 @@ async function verifyAndOpenAdmin(user) {
     ui.connectionBadge.classList.remove("is-error");
     showAdmin(true);
     await migrateLegacyOrders();
+    await loadMarketplaceVisibilitySetting();
     subscribeToOrders();
-    subscribeToMarketplace();
   } catch (error) {
     console.error(error);
     ui.adminAuthMessage.textContent =
@@ -223,10 +220,11 @@ function showAdmin(isVisible) {
   });
 
   if (!isVisible) {
+    closeCustomerSharePanel();
     state.orders = [];
-    state.marketplaceItems = [];
+    ui.marketplaceVisibilityToggle.checked = false;
+    ui.marketplaceVisibilityMessage.textContent = "Loppishörnan är dold.";
     render();
-    renderMarketplaceAdmin();
   }
 }
 
@@ -262,28 +260,50 @@ function stopOrderSubscription() {
   }
 }
 
-function subscribeToMarketplace() {
-  stopMarketplaceSubscription();
-  unsubscribeMarketplace = firebase.firestoreApi.onSnapshot(
-    firebase.firestoreApi.collection(firebase.db, "marketplaceItems"),
-    (snapshot) => {
-      state.marketplaceItems = snapshot.docs
-        .map((item) => ({ id: item.id, ...item.data() }))
-        .sort((left, right) => Number(right.createdAt) - Number(left.createdAt));
-      renderMarketplaceAdmin();
-    },
-    (error) => {
-      console.error(error);
-      ui.marketplaceMessage.textContent = "Kunde inte synka marknadsplatsen.";
-    }
-  );
+async function loadMarketplaceVisibilitySetting() {
+  try {
+    const snapshot = await firebase.firestoreApi.getDoc(
+      firebase.firestoreApi.doc(firebase.db, "publicSettings", "marketplace")
+    );
+    renderMarketplaceVisibility(snapshot.exists() && snapshot.data().visible === true);
+  } catch (error) {
+    console.error(error);
+    renderMarketplaceVisibility(false);
+    ui.marketplaceVisibilityMessage.textContent =
+      "Synligheten kunde inte hämtas. Loppishörnan visas inte för kunder.";
+  }
 }
 
-function stopMarketplaceSubscription() {
-  if (unsubscribeMarketplace) {
-    unsubscribeMarketplace();
-    unsubscribeMarketplace = undefined;
+async function onMarketplaceVisibilityChange() {
+  const visible = ui.marketplaceVisibilityToggle.checked;
+  ui.marketplaceVisibilityToggle.disabled = true;
+  ui.marketplaceVisibilityMessage.textContent = "Sparar…";
+
+  try {
+    await firebase.firestoreApi.setDoc(
+      firebase.firestoreApi.doc(firebase.db, "publicSettings", "marketplace"),
+      {
+        visible,
+        updatedAt: Date.now()
+      },
+      { merge: true }
+    );
+    renderMarketplaceVisibility(visible);
+  } catch (error) {
+    console.error(error);
+    renderMarketplaceVisibility(!visible);
+    ui.marketplaceVisibilityMessage.textContent =
+      "Synligheten kunde inte sparas. Försök igen.";
+  } finally {
+    ui.marketplaceVisibilityToggle.disabled = false;
   }
+}
+
+function renderMarketplaceVisibility(visible) {
+  ui.marketplaceVisibilityToggle.checked = visible;
+  ui.marketplaceVisibilityMessage.textContent = visible
+    ? "Loppishörnan är synlig för kunder."
+    : "Loppishörnan är dold.";
 }
 
 function onNewOrderShortcut() {
@@ -374,6 +394,7 @@ async function onSaveOrder(event) {
     orderType: existingOrder?.orderType || "custom",
     marketplaceItemId: asString(existingOrder?.marketplaceItemId),
     marketplaceImageUrl: asString(existingOrder?.marketplaceImageUrl),
+    shareToken: asString(existingOrder?.shareToken),
     paymentStatus: asString(formData.get("paymentStatus")) || "Ej aktuell",
     swishReference: asString(formData.get("swishReference")),
     customerId: existingOrder?.customerId || null,
@@ -433,6 +454,12 @@ async function onOrderAction(event) {
         });
       }
 
+      if (order?.shareToken) {
+        await firebase.firestoreApi.deleteDoc(
+          firebase.firestoreApi.doc(firebase.db, "orderShares", order.shareToken)
+        );
+      }
+
       await firebase.firestoreApi.deleteDoc(firebase.firestoreApi.doc(firebase.db, "orders", orderId));
     } catch (error) {
       console.error(error);
@@ -449,6 +476,11 @@ async function onOrderAction(event) {
 
   if (action === "edit") {
     fillForm(order);
+    return;
+  }
+
+  if (action === "share") {
+    await openCustomerSharePanel(order, target);
     return;
   }
 
@@ -607,6 +639,7 @@ function createOrderCard(order, isDraggable = false, isArchived = false) {
   const orderImages = fragment.querySelector(".order-images");
   const nextButton = fragment.querySelector('[data-action="next"]');
   const editButton = fragment.querySelector('[data-action="edit"]');
+  const shareButton = fragment.querySelector('[data-action="share"]');
   const archiveButton = fragment.querySelector('[data-action="archive"]');
   const actions = fragment.querySelector(".item-actions");
 
@@ -620,6 +653,7 @@ function createOrderCard(order, isDraggable = false, isArchived = false) {
   title.textContent = `${order.customer} • ${order.product}`;
   status.textContent = order.status;
   status.classList.add(`status-${order.status}`);
+  shareButton.textContent = order.shareToken ? "Kundlänk ✓" : "Kundlänk";
 
   if (order.contact) {
     contact.textContent = `Kontakt: ${order.contact}`;
@@ -1019,243 +1053,6 @@ function updateShippingEstimate() {
     `${quantity} × ${unitPrice} kr + ${shippingRate.price} kr frakt.`;
 }
 
-async function onSaveMarketplaceItem(event) {
-  event.preventDefault();
-
-  if (!firebase?.auth.currentUser) {
-    return;
-  }
-
-  const formData = new FormData(ui.marketplaceForm);
-  const id = ui.marketplaceItemId.value || `item_${Date.now()}_${Math.round(Math.random() * 10000)}`;
-  const existingItem = state.marketplaceItems.find((item) => item.id === id);
-  const imageFile = ui.marketplaceImage.files?.[0];
-
-  if (!existingItem && !imageFile) {
-    ui.marketplaceMessage.textContent = "Välj en bild på varan.";
-    return;
-  }
-
-  if (imageFile && (!imageFile.type.startsWith("image/") || imageFile.size > 5 * 1024 * 1024)) {
-    ui.marketplaceMessage.textContent = "Bilden måste vara en bildfil och högst 5 MB.";
-    return;
-  }
-
-  ui.marketplaceSave.disabled = true;
-  ui.marketplaceSave.textContent = imageFile ? "Laddar upp…" : "Sparar…";
-  ui.marketplaceMessage.textContent = "";
-
-  try {
-    const imageUrl = imageFile
-      ? await uploadMarketplaceImage(id, imageFile)
-      : existingItem.imageUrl;
-    const now = Date.now();
-    const item = {
-      id,
-      title: asString(formData.get("title")),
-      description: asString(formData.get("description")),
-      price: Math.max(0, Number(formData.get("price")) || 0),
-      shippingCost: Math.max(0, Number(formData.get("shippingCost")) || 0),
-      imageUrl,
-      status: asString(formData.get("itemStatus")) || "available",
-      reservedBy: existingItem?.reservedBy || "",
-      reservedOrderId: existingItem?.reservedOrderId || "",
-      createdAt: existingItem?.createdAt || now,
-      updatedAt: now
-    };
-
-    if (item.status === "available") {
-      item.reservedBy = "";
-      item.reservedOrderId = "";
-    }
-
-    await firebase.firestoreApi.setDoc(
-      firebase.firestoreApi.doc(firebase.db, "marketplaceItems", id),
-      item
-    );
-    resetMarketplaceForm();
-  } catch (error) {
-    console.error(error);
-    ui.marketplaceMessage.textContent = `Varan kunde inte sparas: ${asString(error?.message)}`;
-  } finally {
-    ui.marketplaceSave.disabled = false;
-    ui.marketplaceSave.textContent = "Publicera vara";
-  }
-}
-
-function renderMarketplaceAdmin() {
-  ui.marketplaceList.innerHTML = "";
-
-  if (state.marketplaceItems.length === 0) {
-    const empty = document.createElement("div");
-    empty.className = "empty";
-    empty.textContent = "Inga begagnade saker är publicerade ännu.";
-    ui.marketplaceList.append(empty);
-    return;
-  }
-
-  state.marketplaceItems.forEach((item) => {
-    const card = document.createElement("article");
-    const image = document.createElement("img");
-    const body = document.createElement("div");
-    const title = document.createElement("h3");
-    const meta = document.createElement("p");
-    const actions = document.createElement("div");
-    const editButton = document.createElement("button");
-    const deleteButton = document.createElement("button");
-
-    card.className = "marketplace-admin-item";
-    card.dataset.itemId = item.id;
-    image.src = item.imageUrl;
-    image.alt = item.title;
-    body.className = "marketplace-admin-item-body";
-    title.textContent = item.title;
-    meta.textContent =
-      `${Number(item.price) || 0} kr • Frakt ${Number(item.shippingCost) || 0} kr • ${marketplaceStatusLabel(item.status)}`;
-    actions.className = "item-actions";
-    editButton.type = "button";
-    editButton.className = "mini";
-    editButton.dataset.action = "edit-marketplace-item";
-    editButton.textContent = "Redigera";
-    deleteButton.type = "button";
-    deleteButton.className = "mini danger";
-    deleteButton.dataset.action = "delete-marketplace-item";
-    deleteButton.textContent = "Ta bort";
-    actions.append(editButton, deleteButton);
-    body.append(title, meta, actions);
-    card.append(image, body);
-    ui.marketplaceList.append(card);
-  });
-}
-
-async function onMarketplaceAdminAction(event) {
-  const button = event.target.closest("button[data-action]");
-  const card = button?.closest(".marketplace-admin-item");
-  const item = state.marketplaceItems.find((entry) => entry.id === card?.dataset.itemId);
-
-  if (!item) {
-    return;
-  }
-
-  if (button.dataset.action === "edit-marketplace-item") {
-    ui.marketplaceItemId.value = item.id;
-    ui.marketplaceTitle.value = item.title;
-    ui.marketplaceDescription.value = item.description;
-    ui.marketplacePrice.value = String(item.price);
-    ui.marketplaceShipping.value = String(item.shippingCost);
-    ui.marketplaceStatus.value = item.status;
-    ui.marketplaceImagePreview.src = item.imageUrl;
-    ui.marketplaceImagePreview.alt = item.title;
-    ui.marketplaceImagePreview.hidden = false;
-    ui.marketplaceSave.textContent = "Spara ändringar";
-    ui.marketplaceForm.scrollIntoView({ behavior: "smooth", block: "start" });
-    return;
-  }
-
-  if (button.dataset.action === "delete-marketplace-item") {
-    const shouldDelete = window.confirm(`Ta bort "${item.title}" från marknadsplatsen?`);
-
-    if (!shouldDelete) {
-      return;
-    }
-
-    try {
-      await firebase.firestoreApi.deleteDoc(
-        firebase.firestoreApi.doc(firebase.db, "marketplaceItems", item.id)
-      );
-    } catch (error) {
-      console.error(error);
-      ui.marketplaceMessage.textContent = "Varan kunde inte tas bort.";
-    }
-  }
-}
-
-function resetMarketplaceForm() {
-  ui.marketplaceForm.reset();
-  ui.marketplaceItemId.value = "";
-  ui.marketplaceShipping.value = "0";
-  ui.marketplaceStatus.value = "available";
-  ui.marketplaceImagePreview.hidden = true;
-  ui.marketplaceImagePreview.removeAttribute("src");
-  ui.marketplaceMessage.textContent = "";
-  ui.marketplaceSave.textContent = "Publicera vara";
-}
-
-function previewMarketplaceImage() {
-  const file = ui.marketplaceImage.files?.[0];
-
-  if (!file) {
-    return;
-  }
-
-  ui.marketplaceImagePreview.src = URL.createObjectURL(file);
-  ui.marketplaceImagePreview.alt = "Förhandsvisning av varan";
-  ui.marketplaceImagePreview.hidden = false;
-}
-
-async function uploadMarketplaceImage(itemId, file) {
-  const config = window.CLOUDINARY_CONFIG || {};
-  const cloudName = asString(config.cloudName);
-  const signEndpoint = asString(config.signEndpoint);
-  const uploadPreset = asString(config.uploadPreset);
-  const folder = `${asString(config.folder) || "nailsbyyg-orders"}/marketplace`;
-  const formData = new FormData();
-
-  formData.append("file", file);
-
-  if (signEndpoint) {
-    const idToken = await firebase.auth.currentUser.getIdToken();
-    const signatureResponse = await fetch(signEndpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${idToken}`
-      },
-      body: JSON.stringify({ orderId: itemId, fileIndex: 0, folder })
-    });
-    const signed = await signatureResponse.json();
-
-    if (!signatureResponse.ok) {
-      throw new Error(signed?.error || "Cloudinary-signeringen misslyckades.");
-    }
-
-    formData.append("api_key", signed.apiKey);
-    formData.append("timestamp", String(signed.timestamp));
-    formData.append("signature", signed.signature);
-    formData.append("folder", signed.folder);
-    formData.append("public_id", signed.publicId);
-    formData.append("max_file_size", String(signed.maxFileSize));
-
-    return sendMarketplaceImage(
-      signed.cloudName || cloudName,
-      formData
-    );
-  }
-
-  if (!cloudName || !uploadPreset) {
-    throw new Error("Cloudinary är inte konfigurerat.");
-  }
-
-  formData.append("upload_preset", uploadPreset);
-  formData.append("folder", folder);
-  formData.append("public_id", `${itemId}_${Date.now()}`);
-  return sendMarketplaceImage(cloudName, formData);
-}
-
-async function sendMarketplaceImage(cloudName, formData) {
-  const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-    method: "POST",
-    body: formData
-  });
-  const result = await response.json();
-
-  if (!response.ok || !result.secure_url) {
-    throw new Error(result?.error?.message || "Bilduppladdningen misslyckades.");
-  }
-
-  return result.secure_url;
-}
-
 async function syncMarketplaceItemWithPayment(order) {
   if (!order.marketplaceItemId) {
     return;
@@ -1285,14 +1082,6 @@ async function setMarketplaceItemStatus(itemId, status, extra = {}) {
   );
 }
 
-function marketplaceStatusLabel(status) {
-  return {
-    available: "Tillgänglig",
-    reserved: "Reserverad",
-    sold: "Såld"
-  }[status] || status;
-}
-
 function visibleOrders() {
   const orders = activeOrders();
 
@@ -1317,6 +1106,121 @@ function setDefaultDate() {
     date.setDate(date.getDate() + 7);
     ui.dueDate.value = date.toISOString().slice(0, 10);
   }
+}
+
+async function openCustomerSharePanel(order, button) {
+  button.disabled = true;
+
+  try {
+    const shareToken = asString(order.shareToken) || createShareToken();
+    const sharedOrder = {
+      ...order,
+      shareToken,
+      updatedAt: Date.now()
+    };
+
+    await persistOrder(sharedOrder);
+
+    const shareUrl = createCustomerShareUrl(shareToken);
+    currentSharedOrderId = order.id;
+    ui.customerShareDescription.textContent = `${order.customer} • ${order.product}`;
+    ui.customerShareUrl.value = shareUrl;
+    ui.openCustomerShare.href = shareUrl;
+    ui.openCustomerShare.removeAttribute("aria-disabled");
+    ui.copyCustomerShare.disabled = false;
+    ui.revokeCustomerShare.disabled = false;
+    ui.customerShareMessage.textContent = "";
+    ui.customerSharePanel.hidden = false;
+    ui.customerSharePanel.scrollIntoView({ behavior: "smooth", block: "center" });
+  } catch (error) {
+    console.error(error);
+    window.alert("Kundlänken kunde inte skapas. Försök igen.");
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function copyCustomerShareLink() {
+  const shareUrl = asString(ui.customerShareUrl.value);
+
+  if (!shareUrl) {
+    return;
+  }
+
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(shareUrl);
+    } else {
+      ui.customerShareUrl.select();
+      document.execCommand("copy");
+      ui.customerShareUrl.setSelectionRange(0, 0);
+    }
+
+    ui.customerShareMessage.textContent = "Länken är kopierad och redo att skickas.";
+  } catch (error) {
+    console.error(error);
+    ui.customerShareUrl.select();
+    ui.customerShareMessage.textContent =
+      "Kopieringen fungerade inte automatiskt. Markera länken och kopiera den.";
+  }
+}
+
+async function revokeCustomerShareLink() {
+  const order = state.orders.find((item) => item.id === currentSharedOrderId);
+
+  if (!order?.shareToken) {
+    return;
+  }
+
+  const shouldRevoke = window.confirm(
+    "Stäng av kundlänken? Kunden kan då inte längre öppna sammanställningen."
+  );
+
+  if (!shouldRevoke) {
+    return;
+  }
+
+  ui.revokeCustomerShare.disabled = true;
+
+  try {
+    await firebase.firestoreApi.deleteDoc(
+      firebase.firestoreApi.doc(firebase.db, "orderShares", order.shareToken)
+    );
+    await persistOrder({
+      ...order,
+      shareToken: "",
+      updatedAt: Date.now()
+    });
+
+    ui.customerShareUrl.value = "";
+    ui.openCustomerShare.removeAttribute("href");
+    ui.openCustomerShare.setAttribute("aria-disabled", "true");
+    ui.copyCustomerShare.disabled = true;
+    ui.customerShareMessage.textContent =
+      "Länken är avstängd. Skapa en ny genom att trycka på Kundlänk på ordern igen.";
+  } catch (error) {
+    console.error(error);
+    ui.customerShareMessage.textContent = "Länken kunde inte stängas av. Försök igen.";
+    ui.revokeCustomerShare.disabled = false;
+  }
+}
+
+function closeCustomerSharePanel() {
+  currentSharedOrderId = "";
+  ui.customerSharePanel.hidden = true;
+  ui.customerShareMessage.textContent = "";
+}
+
+function createShareToken() {
+  const bytes = new Uint8Array(SHARE_TOKEN_BYTES);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function createCustomerShareUrl(shareToken) {
+  const url = new URL("./bestallning.html", window.location.href);
+  url.hash = shareToken;
+  return url.toString();
 }
 
 function readLegacyOrders() {
@@ -1352,6 +1256,42 @@ async function persistOrder(order) {
     firebase.firestoreApi.doc(firebase.db, "orders", order.id),
     order,
     { merge: true }
+  );
+
+  if (asString(order.shareToken)) {
+    await persistOrderShare(order);
+  }
+}
+
+async function persistOrderShare(order) {
+  const quantity = Math.max(1, Number(order.quantity) || 1);
+  const unitPrice = Math.max(0, Number(order.price) || 0);
+  const shippingCost = order.deliveryMethod === "Hämtas"
+    ? 0
+    : Math.max(0, Number(order.shippingCost) || 0);
+  const updatedAt = Number(order.updatedAt) || Date.now();
+
+  await firebase.firestoreApi.setDoc(
+    firebase.firestoreApi.doc(firebase.db, "orderShares", order.shareToken),
+    {
+      orderId: order.id,
+      customer: asString(order.customer),
+      product: asString(order.product),
+      quantity,
+      unitPrice,
+      itemTotal: quantity * unitPrice,
+      shippingCost,
+      total: quantity * unitPrice + shippingCost,
+      deliveryMethod: asString(order.deliveryMethod) || "Postas",
+      address: order.deliveryMethod === "Hämtas" ? "" : asString(order.address),
+      dueDate: asString(order.dueDate),
+      status: STATUS_FLOW.includes(order.status) ? order.status : "Ny",
+      notes: asString(order.notes),
+      paymentStatus: asString(order.paymentStatus),
+      active: true,
+      updatedAt,
+      expiresAt: Date.now() + SHARE_LIFETIME_MS
+    }
   );
 }
 
@@ -1401,6 +1341,7 @@ function normalizeLegacyOrder(order) {
     orderType: asString(order.orderType) || "custom",
     marketplaceItemId: asString(order.marketplaceItemId),
     marketplaceImageUrl: asString(order.marketplaceImageUrl),
+    shareToken: asString(order.shareToken),
     paymentStatus: asString(order.paymentStatus) || "Ej aktuell",
     swishReference: asString(order.swishReference),
     customerId: order.customerId || null,

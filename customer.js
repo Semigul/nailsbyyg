@@ -17,6 +17,7 @@ const ui = {
   designImages: document.getElementById("customerDesignImages"),
   fileStatus: document.getElementById("customerFileStatus"),
   imagePreview: document.getElementById("customerImagePreview"),
+  marketplacePromo: document.getElementById("marketplacePromo"),
   marketplaceStatus: document.getElementById("marketplaceStatus"),
   marketplaceGrid: document.getElementById("marketplaceGrid"),
   marketplaceForm: document.getElementById("marketplaceOrderForm"),
@@ -81,8 +82,18 @@ async function init() {
       ui.form.hidden = false;
     }
 
+    const marketplaceVisible = await readMarketplaceVisibility();
+
+    if (ui.marketplacePromo) {
+      ui.marketplacePromo.hidden = !marketplaceVisible;
+    }
+
     if (hasMarketplace) {
-      subscribeToMarketplace();
+      if (marketplaceVisible) {
+        subscribeToMarketplace();
+      } else {
+        showClosedMarketplace();
+      }
     }
   } catch (error) {
     console.error(error);
@@ -99,6 +110,31 @@ async function init() {
         "Loppishörnan kunde inte ansluta. Försök igen lite senare.";
     }
   }
+}
+
+async function readMarketplaceVisibility() {
+  try {
+    const snapshot = await firebase.firestoreApi.getDoc(
+      firebase.firestoreApi.doc(firebase.db, "publicSettings", "marketplace")
+    );
+    return snapshot.exists() && snapshot.data().visible === true;
+  } catch (error) {
+    console.error(error);
+    return false;
+  }
+}
+
+function showClosedMarketplace() {
+  marketplaceItems = [];
+  unsubscribeMarketplace?.();
+  unsubscribeMarketplace = undefined;
+  ui.marketplaceGrid.hidden = true;
+  ui.marketplaceForm.hidden = true;
+  ui.marketplaceSuccess.hidden = true;
+  ui.marketplaceStatus.hidden = false;
+  ui.marketplaceStatus.classList.remove("is-error");
+  ui.marketplaceStatus.textContent =
+    "Loppishörnan är stängd just nu. Titta gärna in igen!";
 }
 
 function subscribeToMarketplace() {

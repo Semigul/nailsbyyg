@@ -155,12 +155,39 @@ service cloud.firestore {
       allow read, update, delete: if isAdmin();
     }
 
+    match /orderShares/{shareToken} {
+      allow get: if isAdmin()
+        || (
+          shareToken.size() == 48
+          && resource.data.active == true
+          && resource.data.expiresAt is int
+          && resource.data.expiresAt > request.time.toMillis()
+        );
+      allow list: if false;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /publicSettings/{settingId} {
+      allow get: if settingId == "marketplace";
+      allow list: if false;
+      allow create, update, delete: if isAdmin();
+    }
+
     match /marketplaceItems/{itemId} {
-      allow read: if isAdmin() || resource.data.status == "available";
+      allow read: if isAdmin()
+        || (
+          resource.data.status == "available"
+          && get(
+            /databases/$(database)/documents/publicSettings/marketplace
+          ).data.visible == true
+        );
       allow create, delete: if isAdmin();
       allow update: if isAdmin()
         || (
           isAnonymousCustomer()
+          && get(
+            /databases/$(database)/documents/publicSettings/marketplace
+          ).data.visible == true
           && resource.data.status == "available"
           && request.resource.data.status == "reserved"
           && request.resource.data.reservedBy == request.auth.uid

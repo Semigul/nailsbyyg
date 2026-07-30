@@ -248,68 +248,6 @@
         <div id="ordersList" class="orders-list" hidden></div>
       </section>
 
-      <section class="card marketplace-admin-card admin-content" hidden>
-        <div class="orders-heading">
-          <div>
-            <p class="section-kicker">Loppishörnan</p>
-            <h2>Begagnade saker</h2>
-          </div>
-        </div>
-        <form id="marketplaceItemForm">
-          <input type="hidden" id="marketplaceAdminItemId" />
-
-          <label for="marketplaceAdminTitle">Namn på varan</label>
-          <input id="marketplaceAdminTitle" name="title" type="text" maxlength="80" required />
-
-          <label for="marketplaceAdminDescription">Beskrivning</label>
-          <textarea
-            id="marketplaceAdminDescription"
-            name="description"
-            rows="4"
-            maxlength="500"
-            required
-          ></textarea>
-
-          <div class="two-col">
-            <div>
-              <label for="marketplaceAdminPrice">Vad kostar varan? (kr)</label>
-              <input id="marketplaceAdminPrice" name="price" type="number" min="0" step="1" required />
-            </div>
-            <div>
-              <label for="marketplaceAdminShipping">Frakt (kr)</label>
-              <input
-                id="marketplaceAdminShipping"
-                name="shippingCost"
-                type="number"
-                min="0"
-                step="1"
-                value="0"
-                required
-              />
-            </div>
-          </div>
-
-          <label for="marketplaceAdminImage">Bild på varan</label>
-          <input id="marketplaceAdminImage" name="image" type="file" accept="image/*" />
-          <p class="upload-help">Bilden lagras i Cloudinary. Max 5 MB.</p>
-          <img id="marketplaceAdminImagePreview" class="marketplace-admin-preview" alt="" hidden />
-
-          <label for="marketplaceAdminStatus">Status</label>
-          <select id="marketplaceAdminStatus" name="itemStatus" required>
-            <option value="available">Tillgänglig</option>
-            <option value="reserved">Reserverad</option>
-            <option value="sold">Såld</option>
-          </select>
-
-          <div class="actions">
-            <button type="submit" class="primary" id="marketplaceAdminSave">Publicera vara</button>
-            <button type="button" class="ghost" id="marketplaceAdminReset">Rensa</button>
-          </div>
-          <p id="marketplaceAdminMessage" class="form-message" aria-live="polite"></p>
-        </form>
-        <div id="marketplaceAdminList" class="marketplace-admin-list" aria-live="polite"></div>
-      </section>
-
       <details class="archive-panel admin-content" id="archivePanel" hidden>
         <summary>
           <span>Arkiv</span>
@@ -317,6 +255,80 @@
         </summary>
         <div id="archiveOrders" class="archive-orders" aria-live="polite"></div>
       </details>
+
+      <section
+        class="card customer-share-panel"
+        id="customerSharePanel"
+        aria-labelledby="customerShareTitle"
+        hidden
+      >
+        <div class="customer-share-heading">
+          <div>
+            <p class="section-kicker">Dela ordern</p>
+            <h2 id="customerShareTitle">Skicka en säker kundlänk</h2>
+          </div>
+          <button
+            type="button"
+            class="share-close"
+            id="closeCustomerShare"
+            aria-label="Stäng kundlänken"
+          >×</button>
+        </div>
+        <p id="customerShareDescription" class="customer-share-description"></p>
+        <label for="customerShareUrl">Kundens länk</label>
+        <div class="customer-share-url-row">
+          <input id="customerShareUrl" type="text" readonly />
+          <button type="button" class="primary" id="copyCustomerShare">Kopiera länk</button>
+        </div>
+        <p class="customer-share-security">
+          Länken fungerar utan inloggning. Alla som får länken kan se orderns sammanställning,
+          inklusive leveransadressen. Skicka den bara direkt till kunden.
+        </p>
+        <div class="actions">
+          <a
+            class="ghost customer-share-preview"
+            id="openCustomerShare"
+            target="_blank"
+            rel="noreferrer noopener"
+          >Förhandsvisa</a>
+          <button type="button" class="ghost danger" id="revokeCustomerShare">
+            Stäng av länken
+          </button>
+        </div>
+        <p id="customerShareMessage" class="form-message" aria-live="polite"></p>
+      </section>
+
+      <footer class="admin-tools-footer admin-content" hidden>
+        <div class="marketplace-visibility-setting">
+          <label class="marketplace-visibility-toggle" for="marketplaceVisibilityToggle">
+            <input
+              id="marketplaceVisibilityToggle"
+              type="checkbox"
+              role="switch"
+              aria-describedby="marketplaceVisibilityMessage"
+            />
+            <span class="marketplace-toggle-track" aria-hidden="true">
+              <span></span>
+            </span>
+            <span>
+              <strong>Visa Loppishörnan för kunder</strong>
+              <small>Dölj den när det inte finns något som ska säljas.</small>
+            </span>
+          </label>
+          <p
+            id="marketplaceVisibilityMessage"
+            class="marketplace-visibility-message"
+            aria-live="polite"
+          >Loppishörnan är dold.</p>
+        </div>
+        <a class="admin-marketplace-link" href="./loppis-admin.html">
+          <span>
+            <small>Loppishörnan</small>
+            <strong>Hantera begagnade saker</strong>
+          </span>
+          <span aria-hidden="true">→</span>
+        </a>
+      </footer>
     </main>
 
     <template id="orderTemplate">
@@ -331,6 +343,7 @@
         <p class="order-notes"></p>
         <div class="order-images"></div>
         <div class="item-actions">
+          <button class="mini share-action" data-action="share">Kundlänk</button>
           <button class="mini" data-action="next">Flytta vidare</button>
           <button class="mini" data-action="edit">Redigera</button>
           <button class="mini archive-action" data-action="archive">Arkivera</button>

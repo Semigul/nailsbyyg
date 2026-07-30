@@ -122,12 +122,26 @@ const FIREBASE_MODULES = {
     function persistDatabase() {
       sessionStorage.setItem(DATABASE_KEY, JSON.stringify({
         orders: state.orders,
-        marketplaceItems: state.marketplaceItems
+        marketplaceItems: state.marketplaceItems,
+        orderShares: state.orderShares,
+        publicSettings: state.publicSettings
       }));
     }
 
     function collectionData(name) {
-      return name === "marketplaceItems" ? state.marketplaceItems : state.orders;
+      if (name === "marketplaceItems") {
+        return state.marketplaceItems;
+      }
+
+      if (name === "orderShares") {
+        return state.orderShares;
+      }
+
+      if (name === "publicSettings") {
+        return state.publicSettings;
+      }
+
+      return state.orders;
     }
 
     function collectionSnapshot(name, constraints = []) {
@@ -168,7 +182,9 @@ const FIREBASE_MODULES = {
 
     export function doc(source, ...segments) {
       if (source?.kind === "collection") {
-        const prefix = source.name === "marketplaceItems" ? "item" : "order";
+        const prefix = source.name === "marketplaceItems"
+          ? "item"
+          : (source.name === "orderShares" ? "share" : "order");
         const id = segments[0] || prefix + "-e2e-" + state.nextDocumentId++;
         return { kind: "document", collection: source.name, id };
       }
@@ -192,7 +208,20 @@ const FIREBASE_MODULES = {
         };
       }
 
-      const value = collectionData(reference.collection)[reference.id];
+      let value = collectionData(reference.collection)[reference.id];
+
+      if (
+        reference.collection === "orderShares"
+        && state.auth.currentUser?.uid !== "admin-e2e"
+        && (
+          value?.active !== true
+          || Number(value?.expiresAt) <= Date.now()
+          || !/^[a-f0-9]{48}$/.test(reference.id)
+        )
+      ) {
+        value = undefined;
+      }
+
       return {
         exists() {
           return Boolean(value);
@@ -227,6 +256,20 @@ const FIREBASE_MODULES = {
 
       if (name === "marketplaceItems" && state.auth.currentUser?.isAnonymous && !hasAvailableFilter) {
         queueMicrotask(() => errorListener?.(new Error("Missing Firestore status constraint")));
+        return () => {};
+      }
+
+      if (
+        name === "marketplaceItems"
+        && state.auth.currentUser?.isAnonymous
+        && state.publicSettings.marketplace?.visible !== true
+      ) {
+        queueMicrotask(() => errorListener?.(new Error("Marketplace is hidden")));
+        return () => {};
+      }
+
+      if (name === "orderShares" && state.auth.currentUser?.uid !== "admin-e2e") {
+        queueMicrotask(() => errorListener?.(new Error("Firestore list denied")));
         return () => {};
       }
 
@@ -331,6 +374,8 @@ export async function installFirebaseMock(page, options = {}) {
       storage: {},
       orders: storedDatabase.orders || {},
       marketplaceItems: storedDatabase.marketplaceItems || {},
+      orderShares: storedDatabase.orderShares || {},
+      publicSettings: storedDatabase.publicSettings || {},
       listeners: {},
       nextDocumentId: 1
     };
@@ -364,4 +409,12 @@ export async function readMockOrders(page) {
 
 export async function readMockMarketplaceItems(page) {
   return page.evaluate(() => Object.values(globalThis.__NAILSBYYG_E2E_FIREBASE__.marketplaceItems));
+}
+
+export async function readMockOrderShares(page) {
+  return page.evaluate(() => Object.values(globalThis.__NAILSBYYG_E2E_FIREBASE__.orderShares));
+}
+
+export async function readMockPublicSettings(page) {
+  return page.evaluate(() => ({ ...globalThis.__NAILSBYYG_E2E_FIREBASE__.publicSettings }));
 }
