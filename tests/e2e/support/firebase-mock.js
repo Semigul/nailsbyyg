@@ -184,7 +184,11 @@ const FIREBASE_MODULES = {
       if (source?.kind === "collection") {
         const prefix = source.name === "marketplaceItems"
           ? "item"
-          : (source.name === "orderShares" ? "share" : "order");
+          : (
+            source.name === "orderShares"
+              ? "share"
+              : "order"
+          );
         const id = segments[0] || prefix + "-e2e-" + state.nextDocumentId++;
         return { kind: "document", collection: source.name, id };
       }
@@ -363,6 +367,9 @@ export async function installFirebaseMock(page, options = {}) {
     globalThis.MARKETPLACE_CONFIG = {
       swishNumber: "0701234567"
     };
+    globalThis.PUSH_CONFIG = {
+      endpoint: "https://push.e2e.test"
+    };
 
     globalThis.__NAILSBYYG_E2E_FIREBASE__ = {
       apps: [],
@@ -401,6 +408,39 @@ export async function installFirebaseMock(page, options = {}) {
   });
 
   await page.route(/https:\/\/fonts\.(googleapis|gstatic)\.com\/.*/, (route) => route.abort());
+  await page.route("https://push.e2e.test/**", async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    const corsHeaders = {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+      "Access-Control-Allow-Headers": "Authorization, Content-Type"
+    };
+
+    if (request.method() === "OPTIONS") {
+      await route.fulfill({ status: 204, headers: corsHeaders });
+      return;
+    }
+
+    if (url.pathname === "/v1/config") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        headers: corsHeaders,
+        body: JSON.stringify({
+          publicKey: `B${"a".repeat(86)}`
+        })
+      });
+      return;
+    }
+
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      headers: corsHeaders,
+      body: JSON.stringify({ ok: true, delivered: 1 })
+    });
+  });
 }
 
 export async function readMockOrders(page) {

@@ -1,0 +1,29 @@
+{
+  "name": "Nailsbyy.g Admin",
+  "short_name": "Nailsbyy.g",
+  "description": "Privat orderhantering för Nailsbyy.g",
+  "lang": "sv",
+  "start_url": "./admin.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#fff9f6",
+  "theme_color": "#fff9f6",
+  "icons": [
+    {
+      "src": "./assets/icons/admin-app-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./assets/icons/admin-app-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "./assets/icons/admin-app-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

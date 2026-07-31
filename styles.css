@@ -255,6 +255,58 @@ button {
   letter-spacing: -0.04em;
 }
 
+.notification-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+  border-color: rgba(248, 108, 155, 0.32);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(255, 241, 246, 0.94));
+}
+
+.notification-card h2 {
+  margin-bottom: 0.35rem;
+}
+
+.notification-status,
+.notification-install-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.notification-status.is-success {
+  color: var(--success-ink);
+  font-weight: 700;
+}
+
+.notification-status.is-error {
+  color: #9e2949;
+  font-weight: 700;
+}
+
+.notification-install-hint {
+  margin-top: 0.6rem;
+  padding: 0.7rem 0.8rem;
+  border-radius: 0.9rem;
+  background: var(--warning-bg);
+  color: var(--warning-ink);
+}
+
+.notification-button {
+  width: auto;
+  min-width: 10rem;
+  min-height: 44px;
+  white-space: nowrap;
+}
+
+.notification-button.is-active {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+}
+
 .auth-intro {
   margin: 0 0 0.75rem;
   color: var(--muted);
@@ -687,7 +739,8 @@ textarea {
 }
 
 .order-item {
-  padding: 0.9rem;
+  overflow: hidden;
+  padding: 0;
   border: 1px solid var(--line);
   border-radius: 1rem;
   background: #fff;
@@ -696,7 +749,7 @@ textarea {
 }
 
 .order-item[draggable="true"] {
-  cursor: grab;
+  cursor: default;
 }
 
 .order-item.is-dragging {
@@ -705,19 +758,104 @@ textarea {
   transform: rotate(1deg);
 }
 
-.order-item header {
+.order-card-header {
   display: flex;
-  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.order-card-toggle {
+  display: grid;
+  min-width: 0;
+  min-height: 64px;
+  flex: 1;
+  gap: 0.3rem;
+  padding: 0.65rem 0.75rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  transition: background 160ms ease;
+}
+
+.order-card-toggle:hover,
+.order-card-toggle:focus-visible {
+  outline: 0;
+  background: var(--surface-blush);
+}
+
+.order-card-toggle:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--pink);
+}
+
+.order-card-topline,
+.order-card-bottomline {
+  display: flex;
+  min-width: 0;
   align-items: center;
   justify-content: space-between;
+  gap: 0.5rem;
 }
 
 .order-title {
+  display: block;
   min-width: 0;
   overflow-wrap: anywhere;
   margin: 0;
-  font-size: 1rem;
+  font-size: 0.9rem;
+  font-weight: 800;
   letter-spacing: -0.01em;
+}
+
+.order-card-bottomline {
+  color: var(--muted);
+}
+
+.order-meta {
+  min-width: 0;
+  overflow: hidden;
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 650;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.order-expand-label {
+  flex: 0 0 auto;
+  color: var(--pink-strong);
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.order-drag-handle {
+  display: grid;
+  width: 44px;
+  min-height: 64px;
+  flex: 0 0 44px;
+  place-items: center;
+  border-left: 1px solid var(--line);
+  background: #fffafb;
+  color: #a77b8d;
+  cursor: grab;
+  font-size: 1.2rem;
+  touch-action: none;
+  user-select: none;
+}
+
+.order-drag-handle:active {
+  cursor: grabbing;
+}
+
+.order-card-details {
+  padding: 0.7rem 0.75rem 0.75rem;
+  border-top: 1px solid var(--line);
+  background: rgba(255, 252, 250, 0.54);
+}
+
+.order-item.is-expanded {
+  border-color: rgba(248, 108, 155, 0.42);
+  box-shadow: 0 12px 28px rgba(71, 39, 53, 0.09);
 }
 
 .order-status {
@@ -741,15 +879,20 @@ textarea {
   color: var(--warning-ink);
 }
 
-.order-meta,
+.order-detail-meta,
 .order-contact,
 .order-address,
 .order-notes,
 .order-payment {
-  margin: 0.55rem 0;
+  margin: 0 0 0.55rem;
   color: var(--muted);
-  font-size: 0.86rem;
+  font-size: 0.8rem;
   line-height: 1.5;
+}
+
+.order-detail-meta {
+  color: var(--ink);
+  font-weight: 750;
 }
 
 .order-payment {
@@ -776,7 +919,6 @@ textarea {
 
 .order-contact,
 .order-address {
-  margin-bottom: -0.25rem;
   overflow-wrap: anywhere;
 }
 
@@ -835,6 +977,7 @@ textarea {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 0.4rem;
+  margin-top: 0.65rem;
 }
 
 .share-action {
@@ -877,7 +1020,6 @@ textarea {
 }
 
 .kanban-board .order-item {
-  padding: 0.75rem;
   border-radius: 0.9rem;
 }
 
@@ -886,6 +1028,7 @@ textarea {
 }
 
 .kanban-board .order-meta,
+.kanban-board .order-detail-meta,
 .kanban-board .order-notes {
   font-size: 0.75rem;
 }
@@ -2038,6 +2181,14 @@ textarea {
 }
 
 @media (max-width: 759px) {
+  .notification-card {
+    grid-template-columns: 1fr;
+  }
+
+  .notification-button {
+    width: 100%;
+  }
+
   .app-shell {
     padding: 0.65rem 0.65rem 2rem;
     gap: 0.7rem;
@@ -2180,10 +2331,6 @@ textarea {
     font-size: 1rem;
   }
 
-  .order-item header {
-    align-items: flex-start;
-  }
-
   .item-actions {
     grid-template-columns: 1fr 1fr;
   }
@@ -2196,14 +2343,7 @@ textarea {
     grid-template-columns: 1fr 1fr;
   }
 
-  .kanban-board .order-item header {
-    min-height: 44px;
-    padding-right: 0.25rem;
-    cursor: grab;
-    touch-action: none;
-  }
-
-  .kanban-board .order-item.is-dragging header {
+  .kanban-board .order-item.is-dragging .order-drag-handle {
     cursor: grabbing;
   }
 

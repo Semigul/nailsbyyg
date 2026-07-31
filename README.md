@@ -20,6 +20,8 @@ En mobilvänlig admin- och kundapp för beställningar hos Nailsbyy.g.
 - Skyddad admininloggning
 - PostNord-frakt baserad på vikt
 - Automatisk bildmoderering (pending/approved/rejected)
+- Installerbar privat adminapp med pushnotis vid nya kundbeställningar
+- Kompakta orderkort som kan fällas ut vid behov
 
 ## Starta lokalt
 
@@ -120,6 +122,28 @@ Varje länk har en slumpad 48 tecken lång nyckel, gäller i 90 dagar och kan st
 adminvyn. Nyckeln ligger i länkens fragment efter `#`, så GitHub Pages får inte nyckeln i
 sidförfrågan. Firestore tillåter bara läsning av det exakta dokumentet och förbjuder publik
 listning av samlingen `orderShares`.
+
+### Adminapp på iPhones hemskärm och ordernotiser
+
+Adminvyn kan installeras som en hemskärmsapp på iPhone:
+
+1. Publicera den senaste versionen av webbplatsen, Firestore-reglerna och Cloudflare Workern.
+2. Öppna `admin.html` i Safari på Gretas iPhone.
+3. Tryck på Dela och välj `Lägg till på hemskärmen`.
+4. Öppna Nailsbyy.g från hemskärmen och logga in som admin.
+5. Tryck på `Aktivera notiser` och tillåt notiser.
+
+En pushnotis skickas när en kund skapar en vanlig beställning eller reserverar en
+marknadsplatsvara. Order som skapas manuellt av admin och senare ändringar av en order
+skickar ingen notis. Låsskärmsnotisen visar endast produkt, antal och en kort orderreferens;
+kundens namn och kontaktuppgifter visas först efter att Greta öppnat den inloggningsskyddade
+adminappen.
+
+Pushnotiserna använder standardiserad Web Push via en Cloudflare Worker och har ingen avgift
+per meddelande. Firebase kan ligga kvar på Spark-planen; Blaze och Firebase Functions behövs
+inte för notiserna. Workern verifierar den inloggade kunden mot Firestore innan den skickar
+notisen och lagrar Gretas pushprenumeration privat hos Cloudflare. Installationsstegen finns
+i `worker/README.md`.
 
 ## Cloudinary (bilduppladdning utan Firebase Storage-plan)
 

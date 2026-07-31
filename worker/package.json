@@ -1,0 +1,17 @@
+{
+  "name": "nailsbyyg-order-notifications-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "XDG_CONFIG_HOME=.wrangler WRANGLER_LOG_PATH=.wrangler/wrangler.log wrangler deploy --dry-run --outdir .wrangler-build",
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "web-push": "3.6.7"
+  },
+  "devDependencies": {
+    "wrangler": "4.116.0"
+  }
+}

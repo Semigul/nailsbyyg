@@ -117,10 +117,17 @@ test("kunden kan skicka en beställning för hämtning", async ({ page }) => {
   await page.getByLabel("Färg, form och övriga önskemål").fill("Kort mandelform");
 
   await expect(page.locator("#customerAddressGroup")).toBeHidden();
+  const notificationRequestPromise = page.waitForRequest((request) =>
+    request.url() === "https://push.e2e.test/v1/order-notifications"
+    && request.method() === "POST"
+  );
   await page.getByRole("button", { name: "Skicka beställning" }).click();
 
   await expect(page.locator("#customerSuccess")).toBeVisible();
   await expect(page.locator("#customerOrderReference")).toContainText("Referens:");
+  const notificationRequest = await notificationRequestPromise;
+  expect(notificationRequest.headers().authorization).toBe("Bearer e2e-token");
+  expect(notificationRequest.postDataJSON().orderId).toMatch(/^order-e2e-/);
 
   const orders = await readMockOrders(page);
   expect(orders).toHaveLength(1);

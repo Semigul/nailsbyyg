@@ -108,10 +108,16 @@ test("marknadsplatsköp reserveras, blir en ny order och hanteras med Swish", as
   await checkout.getByLabel("Vem beställer?").fill("Maja Marknad");
   await checkout.getByLabel("Hur når vi dig?").fill("maja@example.com");
   await checkout.getByLabel("Hur vill du få varan?").selectOption("Hämtas");
+  const notificationRequestPromise = page.waitForRequest((request) =>
+    request.url() === "https://push.e2e.test/v1/order-notifications"
+    && request.method() === "POST"
+  );
   await checkout.getByRole("button", { name: "Reservera och beställ" }).click();
 
   await expect(page.locator("#marketplaceSuccess")).toBeVisible();
   await expect(page.locator("#marketplaceSwishInstructions")).toContainText("0701234567");
+  const notificationRequest = await notificationRequestPromise;
+  expect(notificationRequest.postDataJSON().orderId).toMatch(/^order-e2e-/);
 
   expect(await readMockOrders(page)).toMatchObject([{
     customer: "Maja Marknad",
@@ -130,6 +136,7 @@ test("marknadsplatsköp reserveras, blir en ny order och hanteras med Swish", as
   await page.goto("/admin.html");
   const newOrder = page.locator('.kanban-column[data-status="Ny"] .order-item');
   await expect(newOrder).toContainText("Marknadsplats • Betalning: Väntar på Swish");
+  await newOrder.locator(".order-card-toggle").click();
   await newOrder.getByRole("button", { name: "Redigera" }).click();
   await page.getByLabel("Betalningsstatus").selectOption("Betald");
   await page.getByLabel("Swish-referens").fill("MAJA-150");
@@ -139,6 +146,7 @@ test("marknadsplatsköp reserveras, blir en ny order och hanteras med Swish", as
   await expect(newOrder).toContainText("Swish: MAJA-150");
   expect(await readMockMarketplaceItems(page)).toMatchObject([{ status: "sold" }]);
 
+  await newOrder.locator(".order-card-toggle").click();
   await newOrder.getByRole("button", { name: "Redigera" }).click();
   await page.getByLabel("Betalningsstatus").selectOption("Återbetald");
   await page.getByRole("button", { name: "Spara order" }).click();

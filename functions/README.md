@@ -19,7 +19,10 @@ Denna mapp innehaller funktioner for bilduppladdning och moderering.
 2. Logga in: `firebase login`
 3. I projektroten, valj projekt: `firebase use <project-id>`
 4. Installera beroenden: `cd functions && npm install`
-5. Deploya functions: `npm run deploy`
+5. Spara Cloudinary-hemligheterna om signerad bilduppladdning ska anvandas.
+6. Deploya functions: `npm run deploy`
+7. Publicera Firestore-reglerna fran projektroten:
+	- `firebase deploy --only firestore:rules`
 
 ## Krav
 
@@ -29,3 +32,5 @@ Denna mapp innehaller funktioner for bilduppladdning och moderering.
 	- `CLOUDINARY_API_KEY`
 	- `CLOUDINARY_API_SECRET`
 - For `moderateDesignImage`: Cloud Vision API + Firebase Storage
+
+Pushnotiserna ligger i stallet i `worker/` och anvander Cloudflare utan Firebase Blaze.

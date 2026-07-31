@@ -152,7 +152,12 @@ service cloud.firestore {
 
     match /orders/{orderId} {
       allow create: if isAdmin() || isValidCustomerOrder(orderId);
-      allow read, update, delete: if isAdmin();
+      allow get: if isAdmin()
+        || (
+          isAnonymousCustomer()
+          && resource.data.customerId == request.auth.uid
+        );
+      allow list, update, delete: if isAdmin();
     }
 
     match /orderShares/{shareToken} {

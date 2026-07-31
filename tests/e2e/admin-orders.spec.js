@@ -1,5 +1,9 @@
+import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
-import { installFirebaseMock, readMockOrders } from "./support/firebase-mock.js";
+import {
+  installFirebaseMock,
+  readMockOrders
+} from "./support/firebase-mock.js";
 
 test.beforeEach(async ({ page }) => {
   await installFirebaseMock(page);
@@ -18,21 +22,29 @@ test("admin kan skapa, flytta, redigera och ta bort en order", async ({ page }) 
   await page.getByRole("button", { name: "Spara order" }).click();
 
   const newColumn = page.locator('.kanban-column[data-status="Ny"]');
-  await expect(newColumn.locator(".order-item")).toContainText("Nora Test • Gelénaglar");
+  const newCard = newColumn.locator(".order-item");
+  await expect(newCard).toContainText("Nora Test • Gelénaglar");
+  await expect(newCard.locator(".order-card-details")).toBeHidden();
+  await expect(newCard.locator(".order-card-toggle")).toHaveAttribute("aria-expanded", "false");
+  await newCard.locator(".order-card-toggle").click();
+  await expect(newCard.locator(".order-card-details")).toBeVisible();
 
-  await newColumn.getByRole("button", { name: "Flytta vidare" }).click();
+  await newCard.getByRole("button", { name: "Flytta vidare" }).click();
   const activeColumn = page.locator('.kanban-column[data-status="Pågår"]');
-  await expect(activeColumn.locator(".order-item")).toContainText("Nora Test • Gelénaglar");
+  const activeCard = activeColumn.locator(".order-item");
+  await expect(activeCard).toContainText("Nora Test • Gelénaglar");
 
-  await activeColumn.getByRole("button", { name: "Redigera" }).click();
+  await activeCard.locator(".order-card-toggle").click();
+  await activeCard.getByRole("button", { name: "Redigera" }).click();
   await expect(page.locator("#formTitle")).toHaveText("Redigera order");
   await page.getByLabel("Behandling eller produkt").fill("Gelénaglar med chrome");
   await page.getByRole("button", { name: "Spara order" }).click();
-  await expect(activeColumn.locator(".order-item")).toContainText("Gelénaglar med chrome");
+  await expect(activeCard).toContainText("Gelénaglar med chrome");
 
   page.once("dialog", (dialog) => dialog.accept());
-  await activeColumn.getByRole("button", { name: "Ta bort" }).click();
-  await expect(activeColumn.locator(".order-item")).toHaveCount(0);
+  await activeCard.locator(".order-card-toggle").click();
+  await activeCard.getByRole("button", { name: "Ta bort" }).click();
+  await expect(activeCard).toHaveCount(0);
   expect(await readMockOrders(page)).toHaveLength(0);
 });
 
@@ -61,6 +73,7 @@ test("admin kan arkivera och återställa en order från det dolda arkivet", asy
   await expect(newColumn.locator(".order-item")).toContainText("Alicia Arkiv");
 
   page.once("dialog", (dialog) => dialog.accept());
+  await newColumn.locator(".order-card-toggle").click();
   await newColumn.getByRole("button", { name: "Arkivera" }).click();
 
   await expect(newColumn.locator(".order-item")).toHaveCount(0);
@@ -70,6 +83,7 @@ test("admin kan arkivera och återställa en order från det dolda arkivet", asy
   await page.locator("#archivePanel summary").click();
   const archivedCard = page.locator("#archiveOrders .order-item");
   await expect(archivedCard).toContainText("Alicia Arkiv");
+  await archivedCard.locator(".order-card-toggle").click();
   await archivedCard.getByRole("button", { name: "Återställ" }).click();
 
   await expect(page.locator("#archiveCount")).toHaveText("0");
@@ -85,14 +99,14 @@ test("orderstatus kan flyttas med en touchvänlig kontroll på iPhone-storlek", 
 
   const newColumn = page.locator('.kanban-column[data-status="Ny"]');
   const card = newColumn.locator(".order-item");
-  const dragArea = card.locator("header");
+  const dragArea = card.locator(".order-drag-handle");
 
   await expect(dragArea).toBeVisible();
   const dragAreaBox = await dragArea.boundingBox();
   expect(dragAreaBox?.height).toBeGreaterThanOrEqual(44);
 
   await page.evaluate(() => {
-    const handle = document.querySelector('[data-status="Ny"] .order-item header');
+    const handle = document.querySelector('[data-status="Ny"] .order-drag-handle');
     const target = document.querySelector('[data-status="Klar"]');
     const startBox = handle.getBoundingClientRect();
     const targetBox = target.getBoundingClientRect();
@@ -118,9 +132,11 @@ test("orderstatus kan flyttas med en touchvänlig kontroll på iPhone-storlek", 
   });
 
   const doneColumn = page.locator('.kanban-column[data-status="Klar"]');
-  await expect(doneColumn.locator(".order-item")).toContainText("Mobil Test");
+  const doneCard = doneColumn.locator(".order-item");
+  await expect(doneCard).toContainText("Mobil Test");
+  await doneCard.locator(".order-card-toggle").click();
 
-  await doneColumn
+  await doneCard
     .getByLabel("Flytta order för Mobil Test till status")
     .selectOption("Levererad");
   const deliveredColumn = page.locator('.kanban-column[data-status="Levererad"]');
@@ -186,4 +202,135 @@ test("utan håll mig inloggad används bara webbläsarsessionen", async ({ page 
 
   expect(storedSession.local).toBeNull();
   expect(storedSession.session).toContain("admin-e2e");
+});
+
+test("admin kan aktivera och stänga av notiser för nya kundbeställningar", async ({ page }) => {
+  await page.addInitScript(() => {
+    globalThis.__NAILSBYYG_E2E_PUSH_SUBSCRIPTION__ = null;
+    globalThis.__NAILSBYYG_E2E_NOTIFICATION_PERMISSION__ = "default";
+
+    const subscription = {
+      endpoint: "https://push.example/admin-device",
+      toJSON() {
+        return {
+          endpoint: this.endpoint,
+          keys: {
+            p256dh: "test-p256dh-key",
+            auth: "test-auth-key"
+          }
+        };
+      },
+      async unsubscribe() {
+        globalThis.__NAILSBYYG_E2E_PUSH_SUBSCRIPTION__ = null;
+        return true;
+      }
+    };
+    const registration = {
+      pushManager: {
+        async getSubscription() {
+          return globalThis.__NAILSBYYG_E2E_PUSH_SUBSCRIPTION__;
+        },
+        async subscribe() {
+          globalThis.__NAILSBYYG_E2E_PUSH_SUBSCRIPTION__ = subscription;
+          return subscription;
+        }
+      }
+    };
+
+    Object.defineProperty(globalThis, "PushManager", {
+      configurable: true,
+      value: function PushManager() {}
+    });
+    Object.defineProperty(globalThis, "Notification", {
+      configurable: true,
+      value: {
+        get permission() {
+          return globalThis.__NAILSBYYG_E2E_NOTIFICATION_PERMISSION__;
+        },
+        async requestPermission() {
+          globalThis.__NAILSBYYG_E2E_NOTIFICATION_PERMISSION__ = "granted";
+          return "granted";
+        }
+      }
+    });
+    Object.defineProperty(navigator, "serviceWorker", {
+      configurable: true,
+      value: {
+        async getRegistration() {
+          return globalThis.__NAILSBYYG_E2E_PUSH_SUBSCRIPTION__
+            ? registration
+            : undefined;
+        },
+        async register() {
+          return registration;
+        }
+      }
+    });
+  });
+  await page.reload();
+  await expect(page.locator("#adminAuthCard")).toBeHidden();
+  const subscribeRequestPromise = page.waitForRequest((request) =>
+    request.url() === "https://push.e2e.test/v1/subscriptions"
+    && request.method() === "POST"
+  );
+  await page.getByRole("button", { name: "Aktivera notiser" }).click();
+  await expect(page.locator("#notificationStatus")).toContainText("Notiser är aktiverade");
+
+  const subscribeRequest = await subscribeRequestPromise;
+  expect(subscribeRequest.headers().authorization).toBe("Bearer e2e-token");
+  expect(subscribeRequest.postDataJSON()).toMatchObject({
+    adminId: "admin-e2e",
+    subscription: {
+      endpoint: "https://push.example/admin-device",
+      keys: {
+        p256dh: "test-p256dh-key",
+        auth: "test-auth-key"
+      }
+    }
+  });
+
+  const unsubscribeRequestPromise = page.waitForRequest((request) =>
+    request.url() === "https://push.e2e.test/v1/subscriptions"
+    && request.method() === "DELETE"
+  );
+  await page.getByRole("button", { name: "Stäng av notiser" }).click();
+  await expect(page.locator("#notificationStatus")).toContainText("Notiser är avstängda");
+  const unsubscribeRequest = await unsubscribeRequestPromise;
+  expect(unsubscribeRequest.postDataJSON()).toMatchObject({
+    adminId: "admin-e2e",
+    endpoint: "https://push.example/admin-device"
+  });
+});
+
+test("adminvyn har en installerbar hemskärmsapp", async ({ page }) => {
+  await expect(page.locator('link[rel="manifest"]')).toHaveAttribute(
+    "href",
+    "./manifest.webmanifest"
+  );
+  await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute(
+    "href",
+    "./assets/icons/admin-app-192.png"
+  );
+
+  const manifest = JSON.parse(
+    await readFile(new URL("../../manifest.webmanifest", import.meta.url), "utf8")
+  );
+  expect(manifest).toMatchObject({
+    name: "Nailsbyy.g Admin",
+    start_url: "./admin.html",
+    display: "standalone"
+  });
+  expect(manifest.icons).toEqual(expect.arrayContaining([
+    expect.objectContaining({ sizes: "192x192", type: "image/png" }),
+    expect.objectContaining({ sizes: "512x512", type: "image/png" })
+  ]));
+});
+
+test("kundens egen order kan verifieras utan att orderlistan öppnas", async () => {
+  const rules = await readFile(new URL("../../firestore.rules", import.meta.url), "utf8");
+
+  expect(rules).toContain("allow get: if isAdmin()");
+  expect(rules).toContain("resource.data.customerId == request.auth.uid");
+  expect(rules).toContain("allow list, update, delete: if isAdmin();");
+  expect(rules).not.toContain("match /pushSubscriptions/{subscriptionId}");
 });
