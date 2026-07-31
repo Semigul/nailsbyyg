@@ -36,6 +36,9 @@ jobs:
       - name: Installera beroenden
         run: npm ci
 
+      - name: Installera beroenden för ordernotiser
+        run: npm ci --prefix worker
+
       - name: Kontrollera beroenden och Firebase
         run: npm run security
 
