@@ -32,6 +32,7 @@ test("admin kan dela en uppdaterad ordersammanställning som fungerar utan inlog
 
   let orderCard = page.locator('.kanban-column[data-status="Ny"] .order-item');
   await expect(orderCard).toContainText("Elsa Kund • Rosa press-on set");
+  await orderCard.locator(".order-card-toggle").click();
   await orderCard.getByRole("button", { name: "Kundlänk" }).click();
 
   const sharePanel = page.locator("#customerSharePanel");
@@ -56,6 +57,7 @@ test("admin kan dela en uppdaterad ordersammanställning som fungerar utan inlog
 
   await page.getByRole("button", { name: "Stäng kundlänken" }).click();
   orderCard = page.locator('.kanban-column[data-status="Ny"] .order-item');
+  await orderCard.locator(".order-card-toggle").click();
   await orderCard.getByRole("button", { name: "Redigera" }).click();
   await page.getByLabel("Pris (kr)").fill("175");
   await page.getByRole("button", { name: "Spara order" }).click();
@@ -84,6 +86,7 @@ test("admin kan stänga av en kundlänk", async ({ page }) => {
   await page.getByRole("button", { name: "Spara order" }).click();
 
   const orderCard = page.locator('.kanban-column[data-status="Ny"] .order-item');
+  await orderCard.locator(".order-card-toggle").click();
   await orderCard.getByRole("button", { name: "Kundlänk" }).click();
   const shareUrl = await page.getByLabel("Kundens länk").inputValue();
 

@@ -2,6 +2,7 @@ import { getFirebaseServices } from "./firebase-client.mjs";
 
 const MAX_UPLOAD_IMAGES = 4;
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
+const ORDER_NOTIFICATION_ATTEMPTS = 2;
 
 const ui = {
   form: document.getElementById("customerOrderForm"),
@@ -307,6 +308,7 @@ async function onSubmitMarketplaceOrder(event) {
         updatedAt: now
       });
     });
+    await notifyAdminAboutOrder(orderReference.id);
 
     ui.marketplaceOrderReference.textContent =
       `Referens: ${orderReference.id.slice(0, 8).toUpperCase()}`;
@@ -427,6 +429,7 @@ async function onSubmitOrder(event) {
     };
 
     await firebase.firestoreApi.setDoc(reference, order);
+    await notifyAdminAboutOrder(reference.id);
 
     ui.orderReference.textContent = `Referens: ${reference.id.slice(0, 8).toUpperCase()}`;
     ui.form.hidden = true;
@@ -741,6 +744,41 @@ function getCloudinaryConfig() {
     signEndpoint,
     folder
   };
+}
+
+async function notifyAdminAboutOrder(orderId) {
+  const configuredEndpoint = clean(window.PUSH_CONFIG?.endpoint);
+
+  if (!configuredEndpoint || !customerUser) {
+    return;
+  }
+
+  const endpoint = new URL(configuredEndpoint, window.location.href);
+  endpoint.pathname =
+    `${endpoint.pathname.replace(/\/+$/, "")}/v1/order-notifications`;
+
+  for (let attempt = 0; attempt < ORDER_NOTIFICATION_ATTEMPTS; attempt += 1) {
+    try {
+      const idToken = await customerUser.getIdToken();
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`
+        },
+        body: JSON.stringify({ orderId })
+      });
+
+      if (response.ok || response.status < 500) {
+        return;
+      }
+    } catch (error) {
+      if (attempt === ORDER_NOTIFICATION_ATTEMPTS - 1) {
+        console.warn("Beställningen sparades men adminnotisen kunde inte skickas.", error);
+      }
+    }
+  }
 }
 
 function clearPreviewUrls() {

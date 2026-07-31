@@ -7,6 +7,7 @@ const STATUS_FLOW = ["Ny", "Pågår", "Klar", "Levererad"];
 const filterLabels = ["Alla", ...STATUS_FLOW];
 const SHARE_TOKEN_BYTES = 24;
 const SHARE_LIFETIME_MS = 90 * 24 * 60 * 60 * 1000;
+const PUSH_PUBLIC_KEY_STORAGE_KEY = "nailsbyyg.push.public-key.v1";
 
 const state = {
   orders: [],
@@ -22,6 +23,10 @@ const ui = {
   adminAuthMessage: document.getElementById("adminAuthMessage"),
   connectionBadge: document.getElementById("connectionBadge"),
   signOutButton: document.getElementById("signOutButton"),
+  notificationCard: document.getElementById("notificationCard"),
+  notificationButton: document.getElementById("notificationButton"),
+  notificationStatus: document.getElementById("notificationStatus"),
+  notificationInstallHint: document.getElementById("notificationInstallHint"),
   adminContent: document.querySelectorAll(".admin-content"),
   form: document.getElementById("orderForm"),
   formTitle: document.getElementById("formTitle"),
@@ -73,6 +78,8 @@ let firebase;
 let unsubscribeOrders;
 let touchDrag;
 let currentSharedOrderId = "";
+let currentAdminUser;
+let notificationBusy = false;
 
 init();
 
@@ -87,6 +94,7 @@ async function init() {
 function bindEvents() {
   ui.adminLoginForm.addEventListener("submit", onAdminLogin);
   ui.signOutButton.addEventListener("click", onAdminSignOut);
+  ui.notificationButton.addEventListener("click", onNotificationAction);
   ui.form.addEventListener("submit", onSaveOrder);
   ui.quantity.addEventListener("input", updateShippingEstimate);
   ui.price.addEventListener("input", updateShippingEstimate);
@@ -201,10 +209,12 @@ async function verifyAndOpenAdmin(user) {
 
     ui.connectionBadge.textContent = "Firebase synkad";
     ui.connectionBadge.classList.remove("is-error");
+    currentAdminUser = user;
     showAdmin(true);
     await migrateLegacyOrders();
     await loadMarketplaceVisibilitySetting();
     subscribeToOrders();
+    await refreshPushNotificationStatus();
   } catch (error) {
     console.error(error);
     ui.adminAuthMessage.textContent =
@@ -220,12 +230,335 @@ function showAdmin(isVisible) {
   });
 
   if (!isVisible) {
+    currentAdminUser = undefined;
     closeCustomerSharePanel();
     state.orders = [];
     ui.marketplaceVisibilityToggle.checked = false;
     ui.marketplaceVisibilityMessage.textContent = "Loppishörnan är dold.";
     render();
   }
+}
+
+async function onNotificationAction() {
+  if (!firebase || !currentAdminUser || notificationBusy) {
+    return;
+  }
+
+  notificationBusy = true;
+  ui.notificationButton.disabled = true;
+  ui.notificationButton.textContent = "Sparar…";
+  setNotificationStatus("Uppdaterar notisinställningen…");
+
+  try {
+    const existingSubscription = await getActivePushSubscription();
+
+    if (existingSubscription) {
+      await removePushSubscription(existingSubscription, currentAdminUser);
+      setNotificationStatus("Notiser är avstängda på den här enheten.");
+    } else {
+      await activatePushNotifications(currentAdminUser);
+      setNotificationStatus(
+        "Notiser är aktiverade. Greta får nu ett besked när en kund beställer.",
+        "success"
+      );
+    }
+  } catch (error) {
+    console.error(error);
+    setNotificationStatus(pushErrorMessage(error), "error");
+  } finally {
+    notificationBusy = false;
+    await refreshPushNotificationStatus({ preserveMessage: true });
+  }
+}
+
+async function refreshPushNotificationStatus(options = {}) {
+  ui.notificationInstallHint.hidden = true;
+
+  if (!supportsPushNotifications()) {
+    ui.notificationButton.disabled = true;
+    ui.notificationButton.textContent = "Notiser stöds inte";
+
+    if (!options.preserveMessage) {
+      setNotificationStatus("Den här webbläsaren stöder inte pushnotiser.", "error");
+    }
+
+    return;
+  }
+
+  if (isIosDevice() && !isStandaloneApp()) {
+    ui.notificationButton.disabled = true;
+    ui.notificationButton.textContent = "Öppna från hemskärmen";
+    ui.notificationInstallHint.hidden = false;
+
+    if (!options.preserveMessage) {
+      setNotificationStatus("Lägg först adminappen på hemskärmen för att aktivera notiser.");
+    }
+
+    return;
+  }
+
+  if (Notification.permission === "denied") {
+    ui.notificationButton.disabled = true;
+    ui.notificationButton.textContent = "Notiser blockerade";
+
+    if (!options.preserveMessage) {
+      setNotificationStatus(
+        "Notiser är blockerade. Tillåt dem i iPhones inställningar för Nailsbyy.g.",
+        "error"
+      );
+    }
+
+    return;
+  }
+
+  try {
+    const subscription = await getActivePushSubscription();
+    const isActive = Boolean(subscription);
+    ui.notificationButton.disabled = notificationBusy;
+    ui.notificationButton.textContent = isActive ? "Stäng av notiser" : "Aktivera notiser";
+    ui.notificationButton.classList.toggle("is-active", isActive);
+
+    if (!options.preserveMessage) {
+      setNotificationStatus(
+        isActive
+          ? "Notiser är aktiverade på den här enheten."
+          : "Notiser är inte aktiverade på den här enheten.",
+        isActive ? "success" : ""
+      );
+    }
+  } catch (error) {
+    console.error(error);
+    ui.notificationButton.disabled = true;
+    ui.notificationButton.textContent = "Försök igen senare";
+
+    if (!options.preserveMessage) {
+      setNotificationStatus("Notisinställningen kunde inte kontrolleras.", "error");
+    }
+  }
+}
+
+async function activatePushNotifications(user) {
+  const permission = Notification.permission === "granted"
+    ? "granted"
+    : await Notification.requestPermission();
+
+  if (permission !== "granted") {
+    throw new Error("notification-permission-denied");
+  }
+
+  const registration = await navigator.serviceWorker.register(
+    new URL("./service-worker.js", import.meta.url)
+  );
+  const publicKey = await getWebPushPublicKey();
+  let subscription = await registration.pushManager.getSubscription();
+  const storedPublicKey = readStoredPushPublicKey();
+  let createdSubscription = false;
+
+  if (subscription && storedPublicKey !== publicKey) {
+    await subscription.unsubscribe();
+    subscription = null;
+  }
+
+  if (!subscription) {
+    subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicKey)
+    });
+    createdSubscription = true;
+  }
+
+  try {
+    await savePushSubscription(subscription, user);
+    storePushPublicKey(publicKey);
+  } catch (error) {
+    if (createdSubscription) {
+      await subscription.unsubscribe();
+    }
+
+    throw error;
+  }
+}
+
+async function removePushSubscription(subscription, user) {
+  try {
+    await requestPushApi("/v1/subscriptions", {
+      method: "DELETE",
+      user,
+      body: {
+        adminId: user.uid,
+        endpoint: subscription.endpoint
+      }
+    });
+  } finally {
+    await subscription.unsubscribe();
+    clearStoredPushPublicKey();
+  }
+}
+
+async function savePushSubscription(subscription, user) {
+  const serialized = subscription.toJSON();
+  const endpoint = asString(serialized.endpoint || subscription.endpoint);
+  const p256dh = asString(serialized.keys?.p256dh);
+  const auth = asString(serialized.keys?.auth);
+
+  if (!endpoint || !p256dh || !auth) {
+    throw new Error("invalid-push-subscription");
+  }
+
+  await requestPushApi("/v1/subscriptions", {
+    method: "POST",
+    user,
+    body: {
+      adminId: user.uid,
+      subscription: {
+        endpoint,
+        expirationTime: serialized.expirationTime ?? null,
+        keys: {
+          p256dh,
+          auth
+        }
+      }
+    }
+  });
+}
+
+async function getExistingPushSubscription() {
+  const registration = await navigator.serviceWorker.getRegistration();
+  return registration?.pushManager?.getSubscription() || null;
+}
+
+async function getActivePushSubscription() {
+  const subscription = await getExistingPushSubscription();
+  return subscription && readStoredPushPublicKey() ? subscription : null;
+}
+
+async function getWebPushPublicKey() {
+  const response = await requestPushApi("/v1/config");
+  const result = await response.json();
+  const publicKey = asString(result.publicKey);
+
+  if (!/^[a-zA-Z0-9_-]{80,120}$/.test(publicKey)) {
+    throw new Error("invalid-vapid-public-key");
+  }
+
+  return publicKey;
+}
+
+async function requestPushApi(pathname, options = {}) {
+  const endpoint = createPushApiUrl(pathname);
+  const headers = {
+    Accept: "application/json"
+  };
+
+  if (options.body) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  if (options.user) {
+    headers.Authorization = `Bearer ${await options.user.getIdToken()}`;
+  }
+
+  const response = await fetch(endpoint, {
+    method: options.method || "GET",
+    headers,
+    body: options.body ? JSON.stringify(options.body) : undefined
+  });
+
+  if (!response.ok) {
+    throw new Error("push-server-not-configured");
+  }
+
+  return response;
+}
+
+function createPushApiUrl(pathname) {
+  const configuredEndpoint = asString(window.PUSH_CONFIG?.endpoint);
+
+  if (!configuredEndpoint) {
+    throw new Error("missing-push-config");
+  }
+
+  const baseUrl = new URL(configuredEndpoint, window.location.href);
+  baseUrl.pathname = `${baseUrl.pathname.replace(/\/+$/, "")}/${pathname.replace(/^\/+/, "")}`;
+  return baseUrl;
+}
+
+function readStoredPushPublicKey() {
+  try {
+    return window.localStorage.getItem(PUSH_PUBLIC_KEY_STORAGE_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
+function storePushPublicKey(publicKey) {
+  try {
+    window.localStorage.setItem(PUSH_PUBLIC_KEY_STORAGE_KEY, publicKey);
+  } catch {
+    // Prenumerationen fungerar fortfarande under den aktuella sessionen.
+  }
+}
+
+function clearStoredPushPublicKey() {
+  try {
+    window.localStorage.removeItem(PUSH_PUBLIC_KEY_STORAGE_KEY);
+  } catch {
+    // Det finns inget mer att rensa när lagring är blockerad.
+  }
+}
+
+function urlBase64ToUint8Array(value) {
+  const padding = "=".repeat((4 - (value.length % 4)) % 4);
+  const base64 = (value + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = window.atob(base64);
+
+  return Uint8Array.from(raw, (character) => character.charCodeAt(0));
+}
+
+function supportsPushNotifications() {
+  return (
+    window.isSecureContext
+    && "serviceWorker" in navigator
+    && "PushManager" in window
+    && "Notification" in window
+    && Boolean(window.crypto?.subtle)
+  );
+}
+
+function isStandaloneApp() {
+  return (
+    window.matchMedia("(display-mode: standalone)").matches
+    || window.navigator.standalone === true
+  );
+}
+
+function isIosDevice() {
+  return (
+    /iphone|ipad|ipod/i.test(navigator.userAgent)
+    || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  );
+}
+
+function setNotificationStatus(message, stateName = "") {
+  ui.notificationStatus.textContent = message;
+  ui.notificationStatus.classList.toggle("is-success", stateName === "success");
+  ui.notificationStatus.classList.toggle("is-error", stateName === "error");
+}
+
+function pushErrorMessage(error) {
+  if (error?.message === "notification-permission-denied") {
+    return "Notiser tilläts inte. Du kan ändra det i enhetens inställningar.";
+  }
+
+  if (error?.message === "push-server-not-configured") {
+    return "Notisservern är inte färdigkonfigurerad ännu.";
+  }
+
+  if (error?.message === "missing-push-config") {
+    return "Notisservern behöver kopplas till appen innan notiser kan aktiveras.";
+  }
+
+  return "Notiserna kunde inte aktiveras. Kontrollera anslutningen och försök igen.";
 }
 
 function subscribeToOrders() {
@@ -418,9 +751,9 @@ async function onSaveOrder(event) {
 }
 
 async function onOrderAction(event) {
-  const target = event.target;
+  const target = event.target.closest("button");
 
-  if (!(target instanceof HTMLButtonElement)) {
+  if (!(target instanceof HTMLButtonElement) || !event.currentTarget.contains(target)) {
     return;
   }
 
@@ -434,6 +767,11 @@ async function onOrderAction(event) {
   const orderId = card.dataset.orderId;
 
   if (!orderId) {
+    return;
+  }
+
+  if (action === "toggle") {
+    toggleOrderCard(card, target);
     return;
   }
 
@@ -512,6 +850,21 @@ async function onOrderAction(event) {
       window.alert("Orderns status kunde inte uppdateras.");
     }
   }
+}
+
+function toggleOrderCard(card, button) {
+  const details = card.querySelector(".order-card-details");
+  const label = card.querySelector(".order-expand-label");
+  const willExpand = button.getAttribute("aria-expanded") !== "true";
+
+  button.setAttribute("aria-expanded", String(willExpand));
+  button.setAttribute(
+    "aria-label",
+    `${willExpand ? "Dölj" : "Visa"} mer information om ordern`
+  );
+  details.hidden = !willExpand;
+  label.textContent = willExpand ? "Visa mindre" : "Visa mer";
+  card.classList.toggle("is-expanded", willExpand);
 }
 
 function fillForm(order) {
@@ -635,8 +988,13 @@ function createOrderCard(order, isDraggable = false, isArchived = false) {
   const contact = fragment.querySelector(".order-contact");
   const address = fragment.querySelector(".order-address");
   const meta = fragment.querySelector(".order-meta");
+  const detailMeta = fragment.querySelector(".order-detail-meta");
   const notes = fragment.querySelector(".order-notes");
   const orderImages = fragment.querySelector(".order-images");
+  const details = fragment.querySelector(".order-card-details");
+  const toggleButton = fragment.querySelector(".order-card-toggle");
+  const expandLabel = fragment.querySelector(".order-expand-label");
+  const dragHandle = fragment.querySelector(".order-drag-handle");
   const nextButton = fragment.querySelector('[data-action="next"]');
   const editButton = fragment.querySelector('[data-action="edit"]');
   const shareButton = fragment.querySelector('[data-action="share"]');
@@ -645,12 +1003,10 @@ function createOrderCard(order, isDraggable = false, isArchived = false) {
 
   card.dataset.orderId = order.id;
   card.draggable = isDraggable && !isArchived;
-
-  if (isDraggable && !isArchived) {
-    card.title = "Dra kortet till ett annat steg";
-  }
+  dragHandle.hidden = !isDraggable || isArchived;
 
   title.textContent = `${order.customer} • ${order.product}`;
+  toggleButton.setAttribute("aria-label", `Visa mer information om ordern för ${order.customer}`);
   status.textContent = order.status;
   status.classList.add(`status-${order.status}`);
   shareButton.textContent = order.shareToken ? "Kundlänk ✓" : "Kundlänk";
@@ -678,9 +1034,10 @@ function createOrderCard(order, isDraggable = false, isArchived = false) {
   const deliveryMethod = order.deliveryMethod || "Postas";
   const paymentStatus = asString(order.paymentStatus) || "Ej aktuell";
 
-  meta.textContent = isDraggable
-    ? `${deliveryMethod} • ${weightText} • Frakt ${shippingCost} kr • Totalt ${totalWithShipping} kr • ${formatDate(order.dueDate)}`
-    : `${order.quantity} st • ${deliveryMethod} • Varor ${total} kr • Frakt ${shippingCost} kr • Totalt ${totalWithShipping} kr • Klart ${formatDate(order.dueDate)}`;
+  meta.textContent =
+    `${order.quantity} st • ${totalWithShipping} kr • ${formatDate(order.dueDate)}`;
+  detailMeta.textContent =
+    `${deliveryMethod} • ${weightText} • Varor ${total} kr • Frakt ${shippingCost} kr • Totalt ${totalWithShipping} kr`;
 
   if (order.orderType === "marketplace" || order.source === "marketplace") {
     card.classList.add("is-marketplace-order");
@@ -692,7 +1049,7 @@ function createOrderCard(order, isDraggable = false, isArchived = false) {
       payment.textContent += ` • Swish: ${order.swishReference}`;
     }
 
-    card.insertBefore(payment, notes);
+    details.insertBefore(payment, notes);
 
     if (order.marketplaceImageUrl) {
       const image = document.createElement("img");
@@ -700,7 +1057,7 @@ function createOrderCard(order, isDraggable = false, isArchived = false) {
       image.src = order.marketplaceImageUrl;
       image.alt = order.product;
       image.loading = "lazy";
-      card.insertBefore(image, orderImages);
+      details.insertBefore(image, orderImages);
     }
   }
 
@@ -737,7 +1094,7 @@ function createOrderCard(order, isDraggable = false, isArchived = false) {
     });
 
     statusControl.append(statusLabel, statusSelect);
-    card.insertBefore(statusControl, actions);
+    details.insertBefore(statusControl, actions);
   }
 
   if (order.notes) {
@@ -789,9 +1146,10 @@ function createOrderCard(order, isDraggable = false, isArchived = false) {
       moderationNote.textContent = `Bilder blockerade: ${reason}`;
     }
 
-    card.insertBefore(moderationNote, card.querySelector(".item-actions"));
+    details.insertBefore(moderationNote, actions);
   }
 
+  expandLabel.textContent = "Visa mer";
   return fragment;
 }
 
@@ -888,7 +1246,7 @@ async function onStatusSelectChange(event) {
 }
 
 function onTouchDragStart(event) {
-  const handle = event.target.closest(".order-item header");
+  const handle = event.target.closest(".order-drag-handle");
 
   if (!handle || (event.pointerType !== "touch" && event.pointerType !== "pen")) {
     return;

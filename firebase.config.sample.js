@@ -24,3 +24,8 @@ window.CLOUDINARY_CONFIG = {
 window.MARKETPLACE_CONFIG = {
   swishNumber: ""
 };
+
+// Cloudflare Worker som skickar Web Push-notiser för nya beställningar.
+window.PUSH_CONFIG = {
+  endpoint: "https://nailsbyyg-order-notifications.DITT_SUBDOMAIN.workers.dev"
+};

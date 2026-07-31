@@ -4,7 +4,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#fff9f6" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Nailsbyy.g" />
     <title>Nailsbyy.g – Orderkompis</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="./assets/icons/admin-app-192.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -58,6 +64,28 @@
           <button type="submit" class="primary auth-submit" id="adminLoginButton" disabled>Logga in</button>
           <p id="adminAuthMessage" class="form-message" aria-live="polite"></p>
         </form>
+      </section>
+
+      <section
+        class="card notification-card admin-content"
+        id="notificationCard"
+        aria-labelledby="notificationTitle"
+        hidden
+      >
+        <div>
+          <p class="section-kicker">Mobilnotiser</p>
+          <h2 id="notificationTitle">Få besked om nya beställningar</h2>
+          <p id="notificationStatus" class="notification-status" aria-live="polite">
+            Kontrollerar notisinställningen…
+          </p>
+          <p id="notificationInstallHint" class="notification-install-hint" hidden>
+            Öppna sidan i Safari, tryck på Dela och välj <strong>Lägg till på hemskärmen</strong>.
+            Öppna sedan adminappen från hemskärmen.
+          </p>
+        </div>
+        <button type="button" class="primary notification-button" id="notificationButton" disabled>
+          Aktivera notiser
+        </button>
       </section>
 
       <section class="summary admin-content" aria-label="Sammanfattning av ordrar" hidden>
@@ -333,25 +361,42 @@
 
     <template id="orderTemplate">
       <article class="order-item">
-        <header>
-          <h3 class="order-title"></h3>
-          <span class="order-status"></span>
+        <header class="order-card-header">
+          <button
+            type="button"
+            class="order-card-toggle"
+            data-action="toggle"
+            aria-expanded="false"
+          >
+            <span class="order-card-topline">
+              <span class="order-title" role="heading" aria-level="3"></span>
+              <span class="order-status"></span>
+            </span>
+            <span class="order-card-bottomline">
+              <span class="order-meta"></span>
+              <span class="order-expand-label">Visa mer</span>
+            </span>
+          </button>
+          <span class="order-drag-handle" aria-hidden="true" title="Dra ordern">⠿</span>
         </header>
-        <p class="order-contact"></p>
-        <p class="order-address"></p>
-        <p class="order-meta"></p>
-        <p class="order-notes"></p>
-        <div class="order-images"></div>
-        <div class="item-actions">
-          <button class="mini share-action" data-action="share">Kundlänk</button>
-          <button class="mini" data-action="next">Flytta vidare</button>
-          <button class="mini" data-action="edit">Redigera</button>
-          <button class="mini archive-action" data-action="archive">Arkivera</button>
-          <button class="mini danger" data-action="delete">Ta bort</button>
+        <div class="order-card-details" hidden>
+          <p class="order-detail-meta"></p>
+          <p class="order-contact"></p>
+          <p class="order-address"></p>
+          <p class="order-notes"></p>
+          <div class="order-images"></div>
+          <div class="item-actions">
+            <button class="mini share-action" data-action="share">Kundlänk</button>
+            <button class="mini" data-action="next">Flytta vidare</button>
+            <button class="mini" data-action="edit">Redigera</button>
+            <button class="mini archive-action" data-action="archive">Arkivera</button>
+            <button class="mini danger" data-action="delete">Ta bort</button>
+          </div>
         </div>
       </article>
     </template>
 
+    <script src="./push-config.js"></script>
     <script type="module" src="./app.js"></script>
   </body>
 </html>
