@@ -66,28 +66,6 @@
         </form>
       </section>
 
-      <section
-        class="card notification-card admin-content"
-        id="notificationCard"
-        aria-labelledby="notificationTitle"
-        hidden
-      >
-        <div>
-          <p class="section-kicker">Mobilnotiser</p>
-          <h2 id="notificationTitle">Få besked om nya beställningar</h2>
-          <p id="notificationStatus" class="notification-status" aria-live="polite">
-            Kontrollerar notisinställningen…
-          </p>
-          <p id="notificationInstallHint" class="notification-install-hint" hidden>
-            Öppna sidan i Safari, tryck på Dela och välj <strong>Lägg till på hemskärmen</strong>.
-            Öppna sedan adminappen från hemskärmen.
-          </p>
-        </div>
-        <button type="button" class="primary notification-button" id="notificationButton" disabled>
-          Aktivera notiser
-        </button>
-      </section>
-
       <section class="summary admin-content" aria-label="Sammanfattning av ordrar" hidden>
         <article>
           <h2 id="totalCount">0</h2>
@@ -107,6 +85,35 @@
         <p class="section-kicker">Översikt</p>
         <h2>Visa ordrar</h2>
         <div class="chips" id="statusChips"></div>
+      </section>
+
+      <section class="card orders-card admin-content" hidden>
+        <div class="orders-heading">
+          <div>
+            <p class="section-kicker">Orderflöde</p>
+            <h2>Dina ordrar</h2>
+          </div>
+          <div class="view-toggle" role="group" aria-label="Välj ordervy">
+            <button type="button" class="view-button active" data-view="board" aria-pressed="true">Board</button>
+            <button type="button" class="view-button" data-view="list" aria-pressed="false">Lista</button>
+          </div>
+          <button type="button" class="mobile-new-order" id="newOrderShortcut">+ Ny order</button>
+        </div>
+        <div id="kanbanBoard" class="kanban-board" aria-label="Orderflöde som Kanban-board"></div>
+        <div id="ordersList" class="orders-list" hidden></div>
+
+        <details class="archive-panel admin-content" id="archivePanel" hidden>
+          <summary aria-label="Visa arkiverade ordrar">
+            <span class="archive-summary-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false">
+                <path d="M4 7.5h16M6 7.5v11h12v-11M9 11h6M5 4h14l1 3.5H4L5 4Z" />
+              </svg>
+            </span>
+            <span>Arkiv</span>
+            <span class="archive-count" id="archiveCount">0</span>
+          </summary>
+          <div id="archiveOrders" class="archive-orders" aria-live="polite"></div>
+        </details>
       </section>
 
       <section class="card form-card admin-content" hidden>
@@ -260,30 +267,6 @@
         </form>
       </section>
 
-      <section class="card orders-card admin-content" hidden>
-        <div class="orders-heading">
-          <div>
-            <p class="section-kicker">Orderflöde</p>
-            <h2>Dina ordrar</h2>
-          </div>
-          <div class="view-toggle" role="group" aria-label="Välj ordervy">
-            <button type="button" class="view-button active" data-view="board" aria-pressed="true">Board</button>
-            <button type="button" class="view-button" data-view="list" aria-pressed="false">Lista</button>
-          </div>
-          <button type="button" class="mobile-new-order" id="newOrderShortcut">+ Ny order</button>
-        </div>
-        <div id="kanbanBoard" class="kanban-board" aria-label="Orderflöde som Kanban-board"></div>
-        <div id="ordersList" class="orders-list" hidden></div>
-      </section>
-
-      <details class="archive-panel admin-content" id="archivePanel" hidden>
-        <summary>
-          <span>Arkiv</span>
-          <span class="archive-count" id="archiveCount">0</span>
-        </summary>
-        <div id="archiveOrders" class="archive-orders" aria-live="polite"></div>
-      </details>
-
       <section
         class="card customer-share-panel"
         id="customerSharePanel"
@@ -356,6 +339,30 @@
           </span>
           <span aria-hidden="true">→</span>
         </a>
+        <section
+          class="notification-card admin-content"
+          id="notificationCard"
+          aria-labelledby="notificationTitle"
+          hidden
+        >
+          <span class="notification-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 7h18s-3 0-3-7M10 20h4" />
+            </svg>
+          </span>
+          <div class="notification-copy">
+            <h2 id="notificationTitle">Mobilnotiser</h2>
+            <p id="notificationStatus" class="notification-status" aria-live="polite">
+              Kontrollerar notisinställningen…
+            </p>
+            <p id="notificationInstallHint" class="notification-install-hint" hidden>
+              Lägg adminappen på hemskärmen i Safari och öppna den därifrån.
+            </p>
+          </div>
+          <button type="button" class="notification-button" id="notificationButton" disabled>
+            Aktivera notiser
+          </button>
+        </section>
       </footer>
     </main>
 
