@@ -91,6 +91,41 @@ test("admin kan arkivera och återställa en order från det dolda arkivet", asy
   expect(await readMockOrders(page)).toMatchObject([{ archivedAt: null }]);
 });
 
+test("orderflöde, arkiv och mobilnotiser ligger kompakt i rätt ordning", async ({ page }) => {
+  const orderFlow = page.locator(".orders-card");
+  const orderForm = page.locator(".form-card");
+  const adminTools = page.locator(".admin-tools-footer");
+  const notificationCard = page.locator("#notificationCard");
+
+  await expect(orderFlow.locator("#archivePanel")).toHaveCount(1);
+  await expect(adminTools.locator("#notificationCard")).toHaveCount(1);
+
+  const layout = await page.evaluate(() => {
+    const orderFlowElement = document.querySelector(".orders-card");
+    const orderFormElement = document.querySelector(".form-card");
+    const marketplaceLink = document.querySelector(".admin-marketplace-link");
+    const notificationElement = document.querySelector("#notificationCard");
+
+    return {
+      orderFlowBeforeForm: Boolean(
+        orderFlowElement?.compareDocumentPosition(orderFormElement)
+        & Node.DOCUMENT_POSITION_FOLLOWING
+      ),
+      notificationAfterMarketplace: Boolean(
+        marketplaceLink?.compareDocumentPosition(notificationElement)
+        & Node.DOCUMENT_POSITION_FOLLOWING
+      )
+    };
+  });
+  const notificationBox = await notificationCard.boundingBox();
+
+  expect(layout).toEqual({
+    orderFlowBeforeForm: true,
+    notificationAfterMarketplace: true
+  });
+  expect(notificationBox?.height).toBeLessThan(110);
+});
+
 test("orderstatus kan flyttas med en touchvänlig kontroll på iPhone-storlek", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 3000 });
   await page.getByLabel("Kundens namn").fill("Mobil Test");
