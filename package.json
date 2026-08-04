@@ -15,9 +15,9 @@
     "prepare": "node scripts/install-git-hooks.mjs"
   },
   "devDependencies": {
-    "@playwright/test": "1.62.0"
+    "@playwright/test": "1.62.1"
   },
   "dependencies": {
-    "firebase": "12.16.0"
+    "firebase": "12.17.0"
   }
 }
