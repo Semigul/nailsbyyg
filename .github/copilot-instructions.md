@@ -19,6 +19,7 @@ This repository contains a web app for NailsbyYG with client-side JavaScript, Fi
   - acceptance criteria
   - the implementation approach
   - any risks or open questions
-- If an issue is labelled `ready-for-dev`, implement the change with the smallest possible scope and add or update tests when relevant.
+- If an issue is labelled `ready-for-dev`, implement the change on the corresponding issue branch (for example `issue-6`) with the smallest possible scope and add or update tests when relevant.
+- If you are continuing work in VS Code, use the same branch that the issue workflow created so your local edits are aligned with the GitHub task.
 - Before finishing, verify the change with the relevant project checks, especially `npm run check` and the relevant test suite.
 - Keep pull requests focused and use the PR template provided in this repository.

@@ -66,6 +66,8 @@ jobs:
               body: [
                 'The issue has been handed to the Copilot coding agent.',
                 '',
-                'It will work on the implementation and prepare a pull request for review.'
+                'Work will continue on branch `issue-${{ github.event.issue.number }}`.',
+                '',
+                'You can open that branch in VS Code and continue from there when you want to review or refine the implementation.'
               ].join('\n')
             });
