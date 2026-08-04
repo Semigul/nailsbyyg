@@ -4,7 +4,7 @@ on:
   issues:
     types: [labeled]
   pull_request:
-    types: [labeled]
+    types: [opened, reopened, synchronize, labeled, closed]
 
 permissions:
   contents: read
@@ -52,8 +52,63 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
+      - name: Track linked issue and update labels
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const body = pr?.body || '';
+            const match = body.match(/(?:close|closes|fix|fixes|resolve|resolves)\s+#(\d+)/i);
+            if (!match) {
+              core.info('No linked issue found in PR body.');
+              return;
+            }
+
+            const issueNumber = Number(match[1]);
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            if (['opened', 'reopened', 'synchronize'].includes(context.payload.action)) {
+              await github.rest.issues.addLabels({
+                owner,
+                repo,
+                issue_number: issueNumber,
+                labels: ['in-development']
+              });
+              await github.rest.issues.removeLabel({
+                owner,
+                repo,
+                issue_number: issueNumber,
+                name: 'needs-refinement'
+              }).catch(() => {});
+            }
+
+            if (context.payload.action === 'labeled' && context.payload.label?.name === 'ready-for-review') {
+              await github.rest.issues.addLabels({
+                owner,
+                repo,
+                issue_number: issueNumber,
+                labels: ['ready-for-review', 'approve-pr']
+              });
+            }
+
+            if (context.payload.action === 'closed' && context.payload.pull_request.merged) {
+              await github.rest.issues.addLabels({
+                owner,
+                repo,
+                issue_number: issueNumber,
+                labels: ['approved']
+              });
+              await github.rest.issues.removeLabel({
+                owner,
+                repo,
+                issue_number: issueNumber,
+                name: 'approve-pr'
+              }).catch(() => {});
+            }
+
       - name: Comment for review
-        if: github.event.label.name == 'ready-for-review'
+        if: github.event.action == 'labeled' && github.event.label.name == 'ready-for-review'
         uses: actions/github-script@v7
         with:
           script: |
@@ -69,7 +124,7 @@ jobs:
             });
 
       - name: Comment for staging
-        if: github.event.label.name == 'ready-for-staging'
+        if: github.event.action == 'labeled' && github.event.label.name == 'ready-for-staging'
         uses: actions/github-script@v7
         with:
           script: |

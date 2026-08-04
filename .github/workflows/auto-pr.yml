@@ -16,22 +16,24 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Create draft PR
-        uses: repo-sync/pull-request@v2
         with:
-          destination_branch: 'main'
-          source_branch: 'feature/${{ github.event.issue.number }}-${{ github.event.issue.title }}'
-          pr_title: '[WIP] ${{ github.event.issue.title }}'
-          pr_body: |
-            Fixes #${{ github.event.issue.number }}
+          fetch-depth: 0
 
-            ## Summary
-            - Implementation started for this issue
-            - Please review the draft PR and iterate as needed
-
-            ## Checklist
-            - [ ] Linked issue
-            - [ ] Draft PR created
-            - [ ] Relevant tests added or updated
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create working branch and draft PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+        run: |
+          set -euo pipefail
+          BRANCH_NAME="issue-${ISSUE_NUMBER}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$BRANCH_NAME"
+          git push origin "$BRANCH_NAME" --force-with-lease
+          gh pr create \
+            --draft \
+            --base main \
+            --head "$BRANCH_NAME" \
+            --title "[WIP] ${ISSUE_TITLE}" \
+            --body "Fixes #${ISSUE_NUMBER}\n\n## Summary\n- Implementation started for this issue\n- Please review the draft PR and iterate as needed\n\n## Checklist\n- [ ] Linked issue\n- [ ] Draft PR created\n- [ ] Relevant tests added or updated"
