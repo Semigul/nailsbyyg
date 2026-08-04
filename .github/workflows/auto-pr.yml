@@ -1,0 +1,37 @@
+name: Auto PR for ready-for-dev issues
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  create-draft-pr:
+    if: github.event.label.name == 'ready-for-dev'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create draft PR
+        uses: repo-sync/pull-request@v2
+        with:
+          destination_branch: 'main'
+          source_branch: 'feature/${{ github.event.issue.number }}-${{ github.event.issue.title }}'
+          pr_title: '[WIP] ${{ github.event.issue.title }}'
+          pr_body: |
+            Fixes #${{ github.event.issue.number }}
+
+            ## Summary
+            - Implementation started for this issue
+            - Please review the draft PR and iterate as needed
+
+            ## Checklist
+            - [ ] Linked issue
+            - [ ] Draft PR created
+            - [ ] Relevant tests added or updated
+          github_token: ${{ secrets.GITHUB_TOKEN }}

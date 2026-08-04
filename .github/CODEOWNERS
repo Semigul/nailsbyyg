@@ -1,0 +1,10 @@
+# Default owners for the repository
+* @Semigul
+
+# GitHub workflow and repository governance
+.github/ @Semigul
+
+# Tests and quality gates
+/tests/ @Semigul
+/worker/ @Semigul
+/functions/ @Semigul

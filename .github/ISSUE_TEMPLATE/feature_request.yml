@@ -1,0 +1,42 @@
+name: Feature request
+description: Suggest a new improvement or feature for NailsbyYG
+title: '[Feature] '
+labels:
+  - needs-refinement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for new ideas, improvements, or workflow changes.
+  - type: input
+    id: summary
+    attributes:
+      label: Short summary
+      description: One sentence describing the idea
+      placeholder: Example: Add a better order confirmation flow
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Problem or opportunity
+      description: Describe the user problem or business need
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: What should be true when the work is done?
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - Low
+        - Medium
+        - High
+    validations:
+      required: true
