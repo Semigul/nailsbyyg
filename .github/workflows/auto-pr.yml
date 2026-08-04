@@ -14,6 +14,18 @@ jobs:
     if: github.event.label.name == 'ready-for-dev'
     runs-on: ubuntu-latest
     steps:
+      - name: Create working branch for the issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          BRANCH_NAME="issue-${{ github.event.issue.number }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout -B "$BRANCH_NAME" origin/main
+          git push origin "$BRANCH_NAME" --force-with-lease
+
       - name: Assign issue to Copilot coding agent
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -29,7 +41,7 @@ jobs:
             "assignees": ["copilot-swe-agent[bot]"],
             "agent_assignment": {
               "target_repo": "${{ github.repository }}",
-              "base_branch": "main",
+              "base_branch": "issue-${{ github.event.issue.number }}",
               "custom_instructions": "Implement the issue in this repository. Keep changes scoped, follow existing project conventions, add or update tests when relevant, and open a pull request with a clear summary.",
               "custom_agent": "",
               "model": ""
