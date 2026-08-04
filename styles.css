@@ -14,6 +14,10 @@
   --warning-bg: #fff4df;
   --warning-ink: #895b13;
   --shadow: 0 18px 48px rgba(71, 39, 53, 0.1);
+  --text-meta: 0.78rem;
+  --text-support: 0.88rem;
+  --text-body: 0.95rem;
+  --text-heading: 1.35rem;
 }
 
 * {
@@ -33,6 +37,8 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
   font-family: "Manrope", "Avenir Next", sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
   color: var(--ink);
   background:
     radial-gradient(circle at 8% 4%, rgba(249, 182, 203, 0.42), transparent 28rem),
@@ -154,9 +160,9 @@ button {
 .section-kicker {
   margin: 0 0 0.35rem;
   color: var(--pink-strong);
-  font-size: 0.72rem;
+  font-size: var(--text-meta);
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
@@ -1283,14 +1289,15 @@ textarea {
 .customer-hero h1 {
   margin: 0;
   font-size: clamp(1.7rem, 8vw, 2.5rem);
-  line-height: 1.08;
+  line-height: 1.12;
   letter-spacing: -0.045em;
 }
 
 .customer-hero > p:last-child {
   margin: 0.65rem 0 0;
   color: var(--muted);
-  line-height: 1.6;
+  font-size: var(--text-body);
+  line-height: 1.55;
 }
 
 .order-summary-shell {
@@ -1305,7 +1312,8 @@ textarea {
 .order-reference {
   margin: 0.35rem 0 0;
   color: var(--muted);
-  font-size: 0.76rem;
+  font-size: var(--text-meta);
+  line-height: 1.45;
   overflow-wrap: anywhere;
 }
 
@@ -1327,16 +1335,16 @@ textarea {
 .order-summary-details dt {
   margin-bottom: 0.25rem;
   color: var(--muted);
-  font-size: 0.7rem;
+  font-size: var(--text-meta);
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
 .order-summary-details dd {
   margin: 0;
   overflow-wrap: anywhere;
-  font-size: 0.92rem;
+  font-size: var(--text-body);
   font-weight: 700;
   line-height: 1.5;
   white-space: pre-line;
@@ -1356,7 +1364,8 @@ textarea {
 
 .order-summary-price h2 {
   margin: 0 0 0.75rem;
-  font-size: 1.1rem;
+  font-size: var(--text-heading);
+  line-height: 1.25;
 }
 
 .order-summary-price > div {
@@ -1389,7 +1398,7 @@ textarea {
 .order-summary-updated {
   margin: 0;
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: var(--text-meta);
   line-height: 1.5;
 }
 
@@ -1419,7 +1428,7 @@ textarea {
   border: 0;
   background: transparent;
   color: var(--muted);
-  font-size: 0.7rem;
+  font-size: var(--text-meta);
   font-weight: 700;
   line-height: 1.35;
   text-align: center;
@@ -1495,7 +1504,7 @@ textarea {
   border-radius: 999px;
   background: transparent;
   color: var(--muted);
-  font-size: 0.68rem;
+  font-size: var(--text-meta);
   font-weight: 700;
   letter-spacing: 0.02em;
   text-decoration: none;
@@ -1610,11 +1619,14 @@ textarea {
 
 .marketplace-card h2 {
   margin: 0.2rem 0 0.45rem;
+  font-size: var(--text-heading);
+  line-height: 1.25;
 }
 
 .marketplace-intro {
   margin: 0 0 1rem;
   color: var(--muted);
+  font-size: var(--text-support);
   line-height: 1.55;
 }
 
@@ -1676,6 +1688,7 @@ textarea {
 .marketplace-item p,
 .marketplace-item small {
   color: var(--muted);
+  font-size: var(--text-support);
   line-height: 1.45;
 }
 
@@ -1717,7 +1730,7 @@ textarea {
   border-radius: 0.8rem;
   background: #fff5d9;
   color: #785513;
-  font-size: 0.82rem;
+  font-size: var(--text-support);
   line-height: 1.5;
 }
 
@@ -1943,7 +1956,7 @@ textarea {
   border-radius: 1rem;
   background: var(--success-bg);
   color: var(--success-ink);
-  font-size: 0.86rem;
+  font-size: var(--text-support);
   font-weight: 700;
   line-height: 1.5;
 }
@@ -1961,7 +1974,7 @@ textarea {
   border-radius: 0 0.75rem 0.75rem 0;
   background: var(--surface-blush);
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: var(--text-support);
   line-height: 1.5;
 }
 
@@ -1969,7 +1982,7 @@ textarea {
   display: block;
   margin-bottom: 0.28rem;
   color: var(--ink);
-  font-size: 0.9rem;
+  font-size: var(--text-body);
   line-height: 1.35;
 }
 
@@ -2053,12 +2066,12 @@ textarea {
 
 .customer-file-copy strong {
   color: var(--ink);
-  font-size: 0.9rem;
+  font-size: var(--text-body);
 }
 
 .customer-file-copy span {
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: var(--text-meta);
   font-weight: 500;
   line-height: 1.4;
 }
@@ -2078,14 +2091,14 @@ textarea {
 .customer-file-status {
   margin: 0.45rem 0 0;
   color: var(--ink);
-  font-size: 0.75rem;
+  font-size: var(--text-meta);
   font-weight: 700;
 }
 
 .upload-help {
   margin: 0.2rem 0 0;
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: var(--text-meta);
   line-height: 1.5;
 }
 
@@ -2156,11 +2169,13 @@ textarea {
 
 .customer-success h2 {
   margin-bottom: 0.45rem;
-  font-size: 1.5rem;
+  font-size: clamp(1.35rem, 5vw, 1.7rem);
+  line-height: 1.25;
 }
 
 .customer-success > p:not(.section-kicker) {
   color: var(--muted);
+  font-size: var(--text-support);
   line-height: 1.55;
 }
 
@@ -2170,7 +2185,7 @@ textarea {
   border-radius: 999px;
   background: var(--surface-blush);
   color: var(--ink) !important;
-  font-size: 0.8rem;
+  font-size: var(--text-meta);
   font-weight: 800;
 }
 
