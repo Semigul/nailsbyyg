@@ -22,7 +22,7 @@ jobs:
 
       - name: Create working branch for the issue
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.COPILOT_WORKFLOW_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           BRANCH_NAME="issue-${{ github.event.issue.number }}"
@@ -34,7 +34,7 @@ jobs:
 
       - name: Assign issue to Copilot coding agent
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.COPILOT_WORKFLOW_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           gh api \
