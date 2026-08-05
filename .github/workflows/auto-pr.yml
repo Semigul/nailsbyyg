@@ -20,7 +20,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
-      - name: Create working branch for the issue
+      - name: Create or update working branch for the issue
         env:
           GH_TOKEN: ${{ secrets.COPILOT_WORKFLOW_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
@@ -29,8 +29,42 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin main
-          git checkout -B "$BRANCH_NAME" origin/main
-          git push origin "$BRANCH_NAME" --force-with-lease
+
+          if git ls-remote --exit-code --heads origin "$BRANCH_NAME" >/dev/null 2>&1; then
+            echo "Branch $BRANCH_NAME already exists on origin."
+          else
+            git checkout -B "$BRANCH_NAME" origin/main
+            git push origin "$BRANCH_NAME"
+          fi
+
+      - name: Create draft PR for the issue
+        env:
+          GH_TOKEN: ${{ secrets.COPILOT_WORKFLOW_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          ISSUE_NUMBER="${{ github.event.issue.number }}"
+          ISSUE_TITLE="${{ github.event.issue.title }}"
+          BRANCH_NAME="issue-$ISSUE_NUMBER"
+
+          existing_pr_number=$(gh pr list \
+            --repo "${{ github.repository }}" \
+            --head "$BRANCH_NAME" \
+            --state all \
+            --json number \
+            --jq '.[0].number // empty')
+
+          if [ -n "$existing_pr_number" ]; then
+            echo "PR #$existing_pr_number already exists for $BRANCH_NAME."
+            exit 0
+          fi
+
+          gh pr create \
+            --repo "${{ github.repository }}" \
+            --base main \
+            --head "$BRANCH_NAME" \
+            --draft \
+            --title "$ISSUE_TITLE" \
+            --body "Closes #$ISSUE_NUMBER"
 
       - name: Assign issue to Copilot coding agent
         env:
@@ -64,10 +98,10 @@ jobs:
               repo: context.repo.repo,
               issue_number: context.payload.issue.number,
               body: [
-                'The issue has been handed to the Copilot coding agent.',
+                'A draft pull request has been created and the issue has been handed to the Copilot coding agent.',
                 '',
-                'Work will continue on branch `issue-${{ github.event.issue.number }}`.',
+                'Work will continue on branch `issue-${{ github.event.issue.number }}` and the linked PR should update as implementation progresses.',
                 '',
-                'You can open that branch in VS Code and continue from there when you want to review or refine the implementation.'
+                'You can open that branch in VS Code if you want to review or refine the implementation.'
               ].join('\n')
             });
