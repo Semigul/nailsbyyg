@@ -14,7 +14,7 @@ test("startsidan leder kunden till beställningsformuläret", async ({ page }) =
   await page.goto("/");
 
   await expect(page).toHaveURL(/\/kund\.html$/);
-  await expect(page.getByRole("heading", { name: "Vad vill du beställa?" })).toBeVisible();
+  await expect(page.getByText("Vad vill du beställa?")).toHaveCount(0);
   await expect(page.locator(".customer-order-card > .section-kicker")).toHaveText("Nagelhörnan");
   await expect(page.locator(".customer-delivery-time")).not.toContainText("💅");
   await expect(page.locator("#marketplacePromo")).toBeHidden();
@@ -50,7 +50,7 @@ test("kundvyn använder en lugnare och mer enhetlig typografi", async ({ page })
   await page.goto("/kund.html");
 
   const sharedFontSelectors = [
-    ".customer-hero h1",
+    ".customer-hero .eyebrow",
     ".customer-order-card label",
     ".customer-order-card input",
     ".customer-order-card select",
@@ -140,6 +140,8 @@ test("filväljaren visar valda bilder och kan ta bort dem", async ({ page }) => 
 
 test("kunden kan skicka en beställning för hämtning", async ({ page }) => {
   await page.goto("/kund.html");
+
+  await expect(page.getByLabel("Leveranssätt")).toContainText("Hämtas i Vaxholm");
 
   await page.getByLabel("Namn").fill("Maja Test");
   await page.getByLabel("Telefon eller e-post").fill("maja@example.com");
