@@ -22,7 +22,7 @@ jobs:
 
       - name: Create working branch for the issue
         env:
-          GH_TOKEN: ${{ secrets.COPILOT_WORKFLOW_TOKEN || secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           BRANCH_NAME="issue-${{ github.event.issue.number }}"
@@ -32,30 +32,28 @@ jobs:
           git checkout -B "$BRANCH_NAME" origin/main
           git push origin "$BRANCH_NAME" --force-with-lease
 
-      - name: Assign issue to Copilot coding agent
+      - name: Create draft pull request
         env:
-          GH_TOKEN: ${{ secrets.COPILOT_WORKFLOW_TOKEN || secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          gh api \
-            --method PATCH \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            /repos/${{ github.repository }}/issues/${{ github.event.issue.number }} \
-            --input - <<'JSON'
-          {
-            "assignees": ["copilot-swe-agent[bot]"],
-            "agent_assignment": {
-              "target_repo": "${{ github.repository }}",
-              "base_branch": "issue-${{ github.event.issue.number }}",
-              "custom_instructions": "Implement the issue in this repository. Keep changes scoped, follow existing project conventions, add or update tests when relevant, and open a pull request with a clear summary.",
-              "custom_agent": "",
-              "model": ""
-            }
-          }
-          JSON
+          BRANCH_NAME="issue-${{ github.event.issue.number }}"
+          PR_TITLE="[WIP] Issue #${{ github.event.issue.number }}: ${{ github.event.issue.title }}"
+          PR_BODY="Closes #${{ github.event.issue.number }}
 
-      - name: Comment with next step
+## Work in progress
+This is a draft PR created automatically for the linked issue.
+
+Related issue: #${{ github.event.issue.number }}"
+          
+          gh pr create \
+            --title "$PR_TITLE" \
+            --body "$PR_BODY" \
+            --base main \
+            --head "$BRANCH_NAME" \
+            --draft || true
+
+      - name: Comment with status
         uses: actions/github-script@v7
         with:
           script: |
@@ -64,10 +62,8 @@ jobs:
               repo: context.repo.repo,
               issue_number: context.payload.issue.number,
               body: [
-                'The issue has been handed to the Copilot coding agent.',
+                '✅ Draft PR created and implementation starting...',
                 '',
-                'Work will continue on branch `issue-${{ github.event.issue.number }}`.',
-                '',
-                'You can open that branch in VS Code and continue from there when you want to review or refine the implementation.'
+                'Branch: `issue-${{ github.event.issue.number }}`'
               ].join('\n')
             });
