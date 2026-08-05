@@ -21,9 +21,9 @@ test("startsidan leder kunden till beställningsformuläret", async ({ page }) =
   await expect(page.locator(".brand-logo")).toHaveCSS("border-top-width", "0px");
   await expect(page.locator(".brand-logo")).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
   await expect(page.locator(".brand-logo")).toHaveCSS("box-shadow", "none");
-  await expect(page.locator(".eyebrow")).toHaveCSS("font-size", "12.48px");
-  await expect(page.locator(".eyebrow")).toHaveCSS("letter-spacing", "1.4976px");
-  await expect(page.locator(".customer-hero > p:last-child")).toHaveCSS("font-size", "15.2px");
+  await expect(page.locator(".eyebrow")).toHaveCSS("font-size", "12px");
+  await expect(page.locator(".eyebrow")).toHaveCSS("letter-spacing", "0.96px");
+  await expect(page.locator(".customer-hero > p:last-child")).toHaveCSS("font-size", "16px");
   const logoMarkup = await page.evaluate(async () => {
     const logoUrl = document.querySelector(".brand-logo img")?.src;
     return logoUrl ? (await fetch(logoUrl)).text() : "";
@@ -43,17 +43,34 @@ test("adminlänken ligger diskret längst ned på kundsidan", async ({ page }) =
   await expect(adminLink).toBeVisible();
   expect(adminLinkBox?.y).toBeGreaterThan((orderCardBox?.y || 0) + (orderCardBox?.height || 0));
   await expect(adminLink).toHaveCSS("opacity", "0.42");
-  await expect(adminLink).toHaveCSS("font-size", "12.48px");
+  await expect(adminLink).toHaveCSS("font-size", "14px");
 });
 
 test("kundvyn använder en lugnare och mer enhetlig typografi", async ({ page }) => {
   await page.goto("/kund.html");
 
-  await expect(page.locator(".customer-order-card > .section-kicker")).toHaveCSS("font-size", "12.48px");
-  await expect(page.locator(".customer-order-card > .section-kicker")).toHaveCSS("letter-spacing", "1.4976px");
-  await expect(page.locator(".customer-shipping-note")).toHaveCSS("font-size", "14.08px");
-  await expect(page.locator(".customer-file-status")).toHaveCSS("font-size", "12.48px");
-  await expect(page.locator(".upload-help")).toHaveCSS("font-size", "12.48px");
+  const sharedFontSelectors = [
+    ".customer-hero h1",
+    ".customer-order-card label",
+    ".customer-order-card input",
+    ".customer-order-card select",
+    ".customer-order-card textarea",
+    ".customer-submit",
+    ".upload-help"
+  ];
+
+  for (const selector of sharedFontSelectors) {
+    await expect(page.locator(selector).first()).toHaveCSS("font-family", /Manrope/);
+  }
+
+  await expect(page.locator(".customer-order-card > .section-kicker")).toHaveCSS("font-size", "12px");
+  await expect(page.locator(".customer-order-card > .section-kicker")).toHaveCSS("letter-spacing", "0.96px");
+  await expect(page.locator(".customer-order-card label").first()).toHaveCSS("font-size", "14px");
+  await expect(page.locator(".customer-order-card input").first()).toHaveCSS("font-size", "16px");
+  await expect(page.locator(".customer-submit")).toHaveCSS("font-size", "16px");
+  await expect(page.locator(".customer-shipping-note")).toHaveCSS("font-size", "16px");
+  await expect(page.locator(".customer-file-status")).toHaveCSS("font-size", "14px");
+  await expect(page.locator(".upload-help")).toHaveCSS("font-size", "14px");
 });
 
 test("kunden kan läsa integritetspolicy och köp- och beställningsvillkor", async ({ page }) => {
