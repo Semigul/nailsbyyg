@@ -40,7 +40,7 @@ jobs:
         run: npm ci --prefix worker
 
       - name: Kontrollera beroenden och Firebase
-        run: npm run security
+        run: npm run security:firebase
 
       - name: Installera testwebbläsare
         run: npx playwright install --with-deps chromium
