@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#fff9f6" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Nailsbyy.g" />
+    <title>Nailsbyy.g – Orderkompis</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="./assets/icons/admin-app-192.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="hero">
+        <div class="brand-logo">
+          <img src="./assets/logos/05-script-accent.svg" alt="Nailsbyy.g" />
+        </div>
+        <div class="hero-copy">
+          <p class="eyebrow">Admin · Orderhantering</p>
+          <div class="admin-session">
+            <span class="connection-badge" id="connectionBadge">Ansluter till Firebase…</span>
+            <a class="customer-view-link" href="./kund.html">Öppna kundvyn</a>
+            <button type="button" class="session-button" id="signOutButton" hidden>Logga ut</button>
+          </div>
+        </div>
+      </header>
+
+      <section class="card auth-card" id="adminAuthCard">
+        <p class="section-kicker">Skyddad adminvy</p>
+        <h1>Logga in</h1>
+        <p class="auth-intro">Använd admin-kontot som du skapade i Firebase Authentication.</p>
+        <form id="adminLoginForm">
+          <label for="adminEmail">E-post</label>
+          <input id="adminEmail" name="email" type="email" autocomplete="username" required />
+
+          <label for="adminPassword">Lösenord</label>
+          <input
+            id="adminPassword"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            minlength="6"
+            required
+          />
+
+          <label class="auth-persistence" for="adminRememberMe">
+            <input id="adminRememberMe" name="rememberMe" type="checkbox" checked />
+            <span>
+              <strong>Håll mig inloggad</strong>
+              <small>Välj detta endast på en privat enhet.</small>
+            </span>
+          </label>
+
+          <button type="submit" class="primary auth-submit" id="adminLoginButton" disabled>Logga in</button>
+          <p id="adminAuthMessage" class="form-message" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <section class="summary admin-content" aria-label="Sammanfattning av ordrar" hidden>
+        <article>
+          <h2 id="totalCount">0</h2>
+          <p>Totalt</p>
+        </article>
+        <article>
+          <h2 id="activeCount">0</h2>
+          <p>Aktiva</p>
+        </article>
+        <article>
+          <h2 id="doneCount">0</h2>
+          <p>Klara</p>
+        </article>
+      </section>
+
+      <section class="card filter-card admin-content" id="filterCard" hidden>
+        <p class="section-kicker">Översikt</p>
+        <h2>Visa ordrar</h2>
+        <div class="chips" id="statusChips"></div>
+      </section>
+
+      <section class="card orders-card admin-content" hidden>
+        <div class="orders-heading">
+          <div>
+            <p class="section-kicker">Orderflöde</p>
+            <h2>Dina ordrar</h2>
+          </div>
+          <div class="view-toggle" role="group" aria-label="Välj ordervy">
+            <button type="button" class="view-button active" data-view="board" aria-pressed="true">Board</button>
+            <button type="button" class="view-button" data-view="list" aria-pressed="false">Lista</button>
+          </div>
+          <button type="button" class="mobile-new-order" id="newOrderShortcut">+ Ny order</button>
+        </div>
+        <div id="kanbanBoard" class="kanban-board" aria-label="Orderflöde som Kanban-board"></div>
+        <div id="ordersList" class="orders-list" hidden></div>
+
+        <details class="archive-panel admin-content" id="archivePanel" hidden>
+          <summary aria-label="Visa arkiverade ordrar">
+            <span class="archive-summary-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false">
+                <path d="M4 7.5h16M6 7.5v11h12v-11M9 11h6M5 4h14l1 3.5H4L5 4Z" />
+              </svg>
+            </span>
+            <span>Arkiv</span>
+            <span class="archive-count" id="archiveCount">0</span>
+          </summary>
+          <div id="archiveOrders" class="archive-orders" aria-live="polite"></div>
+        </details>
+      </section>
+
+      <section class="card form-card admin-content" hidden>
+        <p class="section-kicker">Beställning</p>
+        <h2 id="formTitle">Ny order</h2>
+        <form id="orderForm">
+          <input type="hidden" id="orderId" />
+
+          <label for="customer">Kundens namn</label>
+          <input id="customer" name="customer" type="text" required maxlength="40" placeholder="Till exempel Sara" />
+
+          <label for="contact">Telefon eller e-post</label>
+          <input
+            id="contact"
+            name="contact"
+            type="text"
+            maxlength="100"
+            placeholder="Kundens kontaktuppgifter"
+          />
+
+          <label for="address">Leveransadress</label>
+          <textarea
+            id="address"
+            name="address"
+            rows="3"
+            maxlength="250"
+            placeholder="Gatuadress, postnummer och ort"
+          ></textarea>
+
+          <label for="product">Behandling eller produkt</label>
+          <input
+            id="product"
+            name="product"
+            type="text"
+            required
+            maxlength="60"
+            placeholder="Till exempel geléförlängning"
+          />
+
+          <div class="two-col">
+            <div>
+              <label for="quantity">Antal</label>
+              <input id="quantity" name="quantity" type="number" min="1" max="999" value="1" required />
+            </div>
+            <div>
+              <label for="price">Pris (kr)</label>
+              <input id="price" name="price" type="number" min="0" step="1" value="0" required />
+            </div>
+          </div>
+
+          <div class="two-col">
+            <div>
+              <label for="weight">Vikt inkl. emballage (g)</label>
+              <input
+                id="weight"
+                name="weight"
+                type="number"
+                min="0"
+                max="2000"
+                step="1"
+                inputmode="numeric"
+                placeholder="Till exempel 85"
+                aria-describedby="shippingHint"
+              />
+            </div>
+            <div>
+              <label for="dueDate">Leveransdatum</label>
+              <input id="dueDate" name="dueDate" type="date" required />
+            </div>
+          </div>
+
+          <div class="estimate-grid">
+            <div class="shipping-estimate" aria-live="polite">
+              <div>
+                <span class="shipping-label">PostNord Sverigebrev</span>
+                <small id="shippingHint">Ange totalvikten för att beräkna frakten.</small>
+              </div>
+              <strong id="shippingEstimate">–</strong>
+            </div>
+            <div class="shipping-estimate total-estimate" aria-live="polite">
+              <div>
+                <span class="shipping-label">Pris inklusive frakt</span>
+                <small id="totalEstimateHint">Antal × pris + frakt.</small>
+              </div>
+              <output id="totalEstimate" for="quantity price weight deliveryMethod">–</output>
+            </div>
+          </div>
+          <p class="shipping-source">
+            Frimärkt brev inrikes, priser från 1 januari 2026.
+            <a
+              href="https://www.postnord.se/privat/priser-och-villkor/portotabeller/portotabell-brev/"
+              target="_blank"
+              rel="noreferrer"
+            >Se PostNords portotabell</a>.
+          </p>
+
+          <div class="two-col">
+            <div>
+              <label for="deliveryMethod">Leveranssätt</label>
+              <select id="deliveryMethod" name="deliveryMethod" required>
+                <option value="Postas">Postas</option>
+                <option value="Hämtas">Hämtas</option>
+              </select>
+            </div>
+            <div>
+              <label for="status">Status</label>
+              <select id="status" name="status" required>
+                <option value="Ny">Ny</option>
+                <option value="Pågår">Pågår</option>
+                <option value="Klar">Klar</option>
+                <option value="Levererad">Levererad</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="two-col">
+            <div>
+              <label for="paymentStatus">Betalningsstatus</label>
+              <select id="paymentStatus" name="paymentStatus" required>
+                <option value="Ej aktuell">Ej aktuell</option>
+                <option value="Väntar på Swish">Väntar på Swish</option>
+                <option value="Betald">Betald</option>
+                <option value="Återbetald">Återbetald</option>
+              </select>
+            </div>
+            <div>
+              <label for="swishReference">Swish-referens</label>
+              <input
+                id="swishReference"
+                name="swishReference"
+                type="text"
+                maxlength="60"
+                placeholder="Till exempel betalningens meddelande"
+              />
+            </div>
+          </div>
+
+          <label for="notes">Anteckning (valfritt)</label>
+          <textarea
+            id="notes"
+            name="notes"
+            rows="3"
+            maxlength="200"
+            placeholder="Färg, form, nail art eller andra önskemål"
+          ></textarea>
+
+          <div class="actions">
+            <button type="submit" class="primary" id="saveButton">Spara order</button>
+            <button type="button" class="ghost" id="resetButton">Rensa</button>
+          </div>
+        </form>
+      </section>
+
+      <section
+        class="card customer-share-panel"
+        id="customerSharePanel"
+        aria-labelledby="customerShareTitle"
+        hidden
+      >
+        <div class="customer-share-heading">
+          <div>
+            <p class="section-kicker">Dela ordern</p>
+            <h2 id="customerShareTitle">Skicka en säker kundlänk</h2>
+          </div>
+          <button
+            type="button"
+            class="share-close"
+            id="closeCustomerShare"
+            aria-label="Stäng kundlänken"
+          >×</button>
+        </div>
+        <p id="customerShareDescription" class="customer-share-description"></p>
+        <label for="customerShareUrl">Kundens länk</label>
+        <div class="customer-share-url-row">
+          <input id="customerShareUrl" type="text" readonly />
+          <button type="button" class="primary" id="copyCustomerShare">Kopiera länk</button>
+        </div>
+        <p class="customer-share-security">
+          Länken fungerar utan inloggning. Alla som får länken kan se orderns sammanställning,
+          inklusive leveransadressen. Skicka den bara direkt till kunden.
+        </p>
+        <div class="actions">
+          <a
+            class="ghost customer-share-preview"
+            id="openCustomerShare"
+            target="_blank"
+            rel="noreferrer noopener"
+          >Förhandsvisa</a>
+          <button type="button" class="ghost danger" id="revokeCustomerShare">
+            Stäng av länken
+          </button>
+        </div>
+        <p id="customerShareMessage" class="form-message" aria-live="polite"></p>
+      </section>
+
+      <footer class="admin-tools-footer admin-content" hidden>
+        <div class="marketplace-visibility-setting">
+          <label class="marketplace-visibility-toggle" for="marketplaceVisibilityToggle">
+            <input
+              id="marketplaceVisibilityToggle"
+              type="checkbox"
+              role="switch"
+              aria-describedby="marketplaceVisibilityMessage"
+            />
+            <span class="marketplace-toggle-track" aria-hidden="true">
+              <span></span>
+            </span>
+            <span>
+              <strong>Visa Loppishörnan för kunder</strong>
+              <small>Dölj den när det inte finns något som ska säljas.</small>
+            </span>
+          </label>
+          <p
+            id="marketplaceVisibilityMessage"
+            class="marketplace-visibility-message"
+            aria-live="polite"
+          >Loppishörnan är dold.</p>
+        </div>
+        <a class="admin-marketplace-link" href="./loppis-admin.html">
+          <span>
+            <small>Loppishörnan</small>
+            <strong>Hantera begagnade saker</strong>
+          </span>
+          <span aria-hidden="true">→</span>
+        </a>
+        <section
+          class="notification-card admin-content"
+          id="notificationCard"
+          aria-labelledby="notificationTitle"
+          hidden
+        >
+          <span class="notification-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 7h18s-3 0-3-7M10 20h4" />
+            </svg>
+          </span>
+          <div class="notification-copy">
+            <h2 id="notificationTitle">Mobilnotiser</h2>
+            <p id="notificationStatus" class="notification-status" aria-live="polite">
+              Kontrollerar notisinställningen…
+            </p>
+            <p id="notificationInstallHint" class="notification-install-hint" hidden>
+              Lägg adminappen på hemskärmen i Safari och öppna den därifrån.
+            </p>
+          </div>
+          <button type="button" class="notification-button" id="notificationButton" disabled>
+            Aktivera notiser
+          </button>
+        </section>
+      </footer>
+    </main>
+
+    <template id="orderTemplate">
+      <article class="order-item">
+        <header class="order-card-header">
+          <button
+            type="button"
+            class="order-card-toggle"
+            data-action="toggle"
+            aria-expanded="false"
+          >
+            <span class="order-card-topline">
+              <span class="order-title" role="heading" aria-level="3"></span>
+              <span class="order-status"></span>
+            </span>
+            <span class="order-card-bottomline">
+              <span class="order-meta"></span>
+              <span class="order-expand-label">Visa mer</span>
+            </span>
+          </button>
+          <span class="order-drag-handle" aria-hidden="true" title="Dra ordern">⠿</span>
+        </header>
+        <div class="order-card-details" hidden>
+          <p class="order-detail-meta"></p>
+          <p class="order-contact"></p>
+          <p class="order-address"></p>
+          <p class="order-notes"></p>
+          <div class="order-images"></div>
+          <div class="item-actions">
+            <button class="mini share-action" data-action="share">Kundlänk</button>
+            <button class="mini" data-action="next">Flytta vidare</button>
+            <button class="mini" data-action="edit">Redigera</button>
+            <button class="mini archive-action" data-action="archive">Arkivera</button>
+            <button class="mini danger" data-action="delete">Ta bort</button>
+          </div>
+        </div>
+      </article>
+    </template>
+
+    <script src="./push-config.js"></script>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

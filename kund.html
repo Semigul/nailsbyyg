@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#fff9f6" />
+    <title>Beställ hos Nailsbyy.g</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body class="customer-page">
+    <main class="customer-shell">
+      <header class="customer-hero">
+        <div class="brand-logo customer-logo">
+          <img src="./assets/logos/05-script-accent.svg" alt="Nailsbyy.g" />
+        </div>
+        <p class="eyebrow">Kundbeställning</p>
+        <p>Fyll i formuläret så hamnar din förfrågan direkt hos Nailsbyy.g.</p>
+      </header>
+
+      <section
+        class="card marketplace-card"
+        id="marketplacePromo"
+        aria-labelledby="marketplaceTitle"
+        hidden
+      >
+        <p class="section-kicker">Loppishörnan</p>
+        <h2 id="marketplaceTitle">Begagnat som söker ett nytt hem</h2>
+        <p class="marketplace-intro">
+          Kika in bland alla begagnade saker som finns till salu och beställ enkelt med Swish.
+        </p>
+        <a class="primary marketplace-page-link" href="./loppis.html">Se sakerna i Loppishörnan</a>
+      </section>
+
+      <section class="card customer-order-card">
+        <p class="section-kicker">Nagelhörnan</p>
+        <div id="customerConnectionStatus" class="connection-notice" role="status">
+          Ansluter till beställningssystemet…
+        </div>
+
+        <form id="customerOrderForm" hidden>
+          <div class="two-col customer-contact-grid">
+            <div>
+              <label for="customerName">Namn</label>
+              <input
+                id="customerName"
+                name="customer"
+                type="text"
+                maxlength="40"
+                autocomplete="name"
+                placeholder="För- och efternamn"
+                required
+              />
+            </div>
+            <div>
+              <label for="customerContact">Telefon eller e-post</label>
+              <input
+                id="customerContact"
+                name="contact"
+                type="text"
+                maxlength="100"
+                autocomplete="email"
+                placeholder="Så att vi kan nå dig"
+                required
+              />
+            </div>
+          </div>
+
+          <label for="customerProduct">Behandling eller produkt</label>
+          <input
+            id="customerProduct"
+            name="product"
+            type="text"
+            maxlength="80"
+            placeholder="Beskriv vad du vill beställa"
+            required
+          />
+
+          <div class="two-col">
+            <div>
+              <label for="customerQuantity">Antal</label>
+              <input id="customerQuantity" name="quantity" type="number" min="1" max="99" value="1" required />
+            </div>
+            <div>
+              <label for="customerDelivery">Leveranssätt</label>
+              <select id="customerDelivery" name="deliveryMethod" required>
+                <option value="Postas">Postas</option>
+                <option value="Hämtas">Hämtas i Vaxholm</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="customerAddressGroup">
+            <label for="customerAddress">Leveransadress</label>
+            <textarea
+              id="customerAddress"
+              name="address"
+              rows="3"
+              maxlength="250"
+              autocomplete="street-address"
+              placeholder="Gatuadress, postnummer och ort"
+              required
+            ></textarea>
+          </div>
+
+          <label for="customerDueDate">Önskat datum</label>
+          <input id="customerDueDate" name="dueDate" type="date" required />
+
+          <label for="customerNotes">Färg, form och övriga önskemål</label>
+          <textarea
+            id="customerNotes"
+            name="notes"
+            rows="5"
+            maxlength="500"
+            placeholder="Berätta gärna så mycket som möjligt. Du kan också ladda upp inspirationsbilder och dina nagelmått nedan."
+          ></textarea>
+
+          <div class="customer-upload-group">
+            <label for="customerDesignImages">Ladda upp inspirationsbilder (valfritt)</label>
+            <div class="customer-file-control">
+              <input
+                class="customer-file-input"
+                id="customerDesignImages"
+                name="designImages"
+                type="file"
+                accept="image/*"
+                aria-describedby="customerFileStatus customerUploadHelp"
+                multiple
+              />
+              <label class="customer-file-trigger" for="customerDesignImages">
+                <span class="customer-file-icon" aria-hidden="true">+</span>
+                <span class="customer-file-copy">
+                  <strong>Välj bilder</strong>
+                  <span>Tryck för att bläddra bland dina bilder</span>
+                </span>
+                <span class="customer-file-action" aria-hidden="true">Bläddra</span>
+              </label>
+              <p id="customerFileStatus" class="customer-file-status" aria-live="polite">Inga bilder valda</p>
+            </div>
+            <p id="customerUploadHelp" class="upload-help">
+              Du kan välja upp till 4 bilder (JPG, PNG, WEBP, HEIC). Max 5 MB per bild.
+            </p>
+            <div id="customerImagePreview" class="customer-image-preview" hidden></div>
+          </div>
+
+          <p class="customer-shipping-note">
+            <strong>Nästa steg: Du får ett prisförslag</strong>
+            Efter att du har skickat beställningen får du veta vad naglarna och eventuell frakt
+            kostar. Jag börjar inte göra beställningen förrän du har sagt ja till priset.
+            <span class="customer-delivery-time">
+              ⏰ Leveranstiden är ungefär 1–3 veckor. Ibland går det supersnabbt och ibland behöver
+              jag lite extra tid – skola, läxor och sport ska ju också få plats! Du får veta ungefär
+              när dina naglar blir klara innan du säger ja.
+            </span>
+          </p>
+
+          <button type="submit" class="primary customer-submit">Skicka beställning</button>
+          <p id="customerFormMessage" class="form-message" aria-live="polite"></p>
+        </form>
+
+        <div id="customerSuccess" class="customer-success" hidden>
+          <span class="success-mark" aria-hidden="true">✓</span>
+          <p class="section-kicker">Beställningen är skickad</p>
+          <h2>Tack för din förfrågan!</h2>
+          <p>Nailsbyy.g återkommer till dig med pris och bekräftelse.</p>
+          <p id="customerOrderReference" class="order-reference"></p>
+          <button type="button" class="ghost" id="newCustomerOrder">Lägg en ny beställning</button>
+        </div>
+      </section>
+
+      <footer class="customer-footer">
+        <nav class="customer-legal-links" aria-label="Juridisk information">
+          <a href="./integritet.html">Integritetspolicy</a>
+          <a href="./kopvillkor.html">Köp- och beställningsvillkor</a>
+        </nav>
+        <div class="customer-footer-access">
+          <a class="customer-admin-link" href="./admin.html" aria-label="Öppna admininloggning">Admin</a>
+        </div>
+      </footer>
+    </main>
+
+    <script src="./push-config.js"></script>
+    <script type="module" src="./customer.js"></script>
+  </body>
+</html>

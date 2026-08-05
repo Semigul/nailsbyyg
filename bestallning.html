@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#fff9f6" />
+    <meta name="referrer" content="no-referrer" />
+    <title>Din beställning hos Nailsbyy.g</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body class="customer-page order-summary-page">
+    <main class="customer-shell order-summary-shell">
+      <header class="customer-hero">
+        <div class="brand-logo customer-logo">
+          <img src="./assets/logos/05-script-accent.svg" alt="Nailsbyy.g" />
+        </div>
+        <p class="eyebrow">Din beställning</p>
+        <h1>Här är din ordersammanställning</h1>
+        <p>Kontrollera att allt ser rätt ut. Kontakta Nailsbyy.g om något behöver ändras.</p>
+      </header>
+
+      <div id="orderShareStatus" class="connection-notice" role="status">
+        Hämtar din beställning…
+      </div>
+
+      <article class="card order-summary-card" id="orderShareContent" hidden>
+        <div class="order-summary-heading">
+          <div>
+            <p class="section-kicker">Beställning</p>
+            <h2 id="sharedProduct"></h2>
+            <p id="sharedReference" class="order-reference"></p>
+          </div>
+          <span id="sharedStatus" class="order-status"></span>
+        </div>
+
+        <dl class="order-summary-details">
+          <div>
+            <dt>Beställare</dt>
+            <dd id="sharedCustomer"></dd>
+          </div>
+          <div>
+            <dt>Antal</dt>
+            <dd id="sharedQuantity"></dd>
+          </div>
+          <div>
+            <dt>Planerat datum</dt>
+            <dd id="sharedDueDate"></dd>
+          </div>
+          <div>
+            <dt>Leverans</dt>
+            <dd id="sharedDeliveryMethod"></dd>
+          </div>
+          <div class="order-summary-address" id="sharedAddressRow">
+            <dt>Skickas till</dt>
+            <dd id="sharedAddress"></dd>
+          </div>
+          <div id="sharedNotesRow">
+            <dt>Önskemål</dt>
+            <dd id="sharedNotes"></dd>
+          </div>
+          <div id="sharedPaymentRow">
+            <dt>Betalning</dt>
+            <dd id="sharedPaymentStatus"></dd>
+          </div>
+        </dl>
+
+        <section class="order-summary-price" aria-labelledby="sharedPriceTitle">
+          <p class="section-kicker">Pris</p>
+          <h2 id="sharedPriceTitle">Din prisöversikt</h2>
+          <div>
+            <span id="sharedItemPriceLabel">Produkter</span>
+            <strong id="sharedItemPrice"></strong>
+          </div>
+          <div>
+            <span>Frakt</span>
+            <strong id="sharedShippingCost"></strong>
+          </div>
+          <div class="order-summary-total">
+            <span>Totalt</span>
+            <strong id="sharedTotal"></strong>
+          </div>
+        </section>
+
+        <p id="sharedUpdatedAt" class="order-summary-updated"></p>
+        <p class="customer-share-security order-summary-security">
+          Den här länken är personlig. Dela den inte vidare eftersom den kan innehålla din
+          leveransadress.
+        </p>
+      </article>
+    </main>
+
+    <script type="module" src="./order-summary.js"></script>
+  </body>
+</html>

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#fff9f6" />
+    <title>Nailsbyy.g</title>
+    <meta http-equiv="refresh" content="0; url=./kund.html" />
+    <script>
+      const target = new URL("./kund.html", window.location.href);
+      target.search = window.location.search;
+      target.hash = window.location.hash;
+      window.location.replace(target.toString());
+    </script>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        font-family: Manrope, sans-serif;
+        background: #fff9f6;
+        color: #2c2532;
+      }
+
+      main {
+        padding: 1rem;
+        text-align: center;
+      }
+
+      a {
+        color: #8e2d63;
+        font-weight: 700;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p>Du skickas till kundsidan.</p>
+      <p><a href="./kund.html">Öppna kundsidan</a></p>
+      <p><a href="./admin.html">Admin</a></p>
+    </main>
+  </body>
+</html>
