@@ -54,7 +54,7 @@ Enable branch protection for `main` with:
 2. Add the `needs-refinement` label.
 3. Add a short problem statement, success criteria, and constraints.
 4. When refined, change to `ready-for-dev`.
-5. Open a draft PR and link it to the issue.
+5. Add the `ready-for-dev` label to let automation create the issue branch, open the draft PR, and assign the Copilot coding agent.
 6. When implementation is ready, add `ready-for-review`.
 7. After review, add `ready-for-staging`.
 8. A human maintainer approves and merges.

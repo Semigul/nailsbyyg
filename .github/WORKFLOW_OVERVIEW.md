@@ -46,7 +46,7 @@ This document describes the recommended end-to-end workflow for ideas, refinemen
 
 ### 3. Development
 
-- A developer opens a draft PR linked to the issue
+- Adding the `ready-for-dev` label automatically creates a draft PR linked to the issue and starts the implementation agent
 - The issue moves to the `In progress` column
 - The PR stays focused on one change or one feature
 - The developer updates the PR as work progresses
@@ -89,7 +89,7 @@ This document describes the recommended end-to-end workflow for ideas, refinemen
 
 ### When to create a PR
 
-- Create a draft PR as soon as implementation begins
+- Add the `ready-for-dev` label as soon as implementation should begin so automation creates the draft PR immediately
 - Do not wait until the work is complete
 
 ### When to release to staging
