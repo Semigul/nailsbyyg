@@ -5,7 +5,7 @@
   "scripts": {
     "check": "node --check app.js && node --check customer.js && node --check marketplace-admin.js && node --check order-summary.js && node --check firebase-client.mjs && node --check postnord-rates.mjs && node --check push-config.js && node --check service-worker.js && node --check functions/index.js && node --check scripts/check-firebase-version.mjs && npm --prefix worker run check && npm run security:firebase && git diff --check",
     "security": "npm run security:firebase && npm run security:audit",
-    "security:audit": "npm audit --audit-level=high --omit=dev && npm --prefix functions audit --audit-level=moderate && npm --prefix worker audit --audit-level=high --omit=dev",
+    "security:audit": "npm audit --audit-level=high && node scripts/check-subproject-audit.mjs functions && node scripts/check-subproject-audit.mjs worker --omit-dev",
     "security:firebase": "node scripts/check-firebase-version.mjs",
     "test": "npm run check && npm run test:worker && npm run test:e2e",
     "test:worker": "npm --prefix worker test",

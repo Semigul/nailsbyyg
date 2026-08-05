@@ -70,7 +70,7 @@ Vid ny funktionalitet ska motsvarande test läggas till eller uppdateras i `test
 ## Säkerhetskontroller
 
 - Dependabot kontrollerar npm-paket varje vecka och öppnar uppdaterings-PR:ar.
-- `npm audit --audit-level=high` stoppar releasen vid sårbarheter med hög eller kritisk nivå.
+- `npm audit --audit-level=high` stoppar releasen vid sårbarheter med hög eller kritisk nivå i webbappen. För `functions` och `worker` granskas samma nivå via `scripts/check-subproject-audit.mjs`, och worker-granskningen fokuserar på produktionsberoenden.
 - Firebase finns som exakt version i `package.json` så att npm audit och Dependabot kan kontrollera paketet.
 - `scripts/check-firebase-version.mjs` stoppar releasen om Firebase-versionen i `package.json` inte matchar CDN-versionen i `firebase-client.mjs`.
 
