@@ -1,7 +1,7 @@
 # Default owners for the repository
 * @Semigul
 
-# GitHub workflow and repository governance
+# Repository configuration
 .github/ @Semigul
 
 # Tests and quality gates
