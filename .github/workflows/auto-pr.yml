@@ -44,7 +44,6 @@ jobs:
             /repos/${{ github.repository }}/issues/${{ github.event.issue.number }} \
             --input - <<'JSON'
           {
-            "assignees": ["copilot-swe-agent[bot]"],
             "agent_assignment": {
               "target_repo": "${{ github.repository }}",
               "base_branch": "issue-${{ github.event.issue.number }}",
