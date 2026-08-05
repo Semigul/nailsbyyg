@@ -124,7 +124,7 @@ test("filväljaren visar valda bilder och kan ta bort dem", async ({ page }) => 
 test("kunden kan skicka en beställning för hämtning", async ({ page }) => {
   await page.goto("/kund.html");
 
-  await expect(page.getByRole("option", { name: "Hämtas i Vaxholm" })).toBeVisible();
+  await expect(page.locator('#customerDelivery option[value="Hämtas"]')).toHaveText("Hämtas i Vaxholm");
 
   await page.getByLabel("Namn").fill("Maja Test");
   await page.getByLabel("Telefon eller e-post").fill("maja@example.com");
