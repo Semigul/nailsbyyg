@@ -14,7 +14,7 @@ test("startsidan leder kunden till beställningsformuläret", async ({ page }) =
   await page.goto("/");
 
   await expect(page).toHaveURL(/\/kund\.html$/);
-  await expect(page.getByRole("heading", { name: "Vad vill du beställa?" })).toBeVisible();
+  await expect(page.getByText("Vad vill du beställa?")).toHaveCount(0);
   await expect(page.locator(".customer-order-card > .section-kicker")).toHaveText("Nagelhörnan");
   await expect(page.locator(".customer-delivery-time")).not.toContainText("💅");
   await expect(page.locator("#marketplacePromo")).toBeHidden();
