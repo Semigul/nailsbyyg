@@ -12,13 +12,6 @@ This repository contains a web app for NailsbyYG with client-side JavaScript, Fi
 - When a task is not fully clear, ask for clarification instead of making risky assumptions.
 - For user-facing changes, consider mobile-first usability and accessibility.
 
-## Agent workflow
+## Verification
 
-- If an issue is labelled `needs-refinement`, first produce a short refinement note with:
-  - the problem statement
-  - acceptance criteria
-  - the implementation approach
-  - any risks or open questions
-- If an issue is labelled `ready-for-dev`, implement the change with the smallest possible scope and add or update tests when relevant.
 - Before finishing, verify the change with the relevant project checks, especially `npm run check` and the relevant test suite.
-- Keep pull requests focused and use the PR template provided in this repository.

@@ -69,9 +69,8 @@ Vid ny funktionalitet ska motsvarande test läggas till eller uppdateras i `test
 
 ## Säkerhetskontroller
 
-- Dependabot kontrollerar npm-paket och GitHub Actions varje vecka och öppnar uppdaterings-PR:ar.
+- Dependabot kontrollerar npm-paket varje vecka och öppnar uppdaterings-PR:ar.
 - `npm audit --audit-level=high` stoppar releasen vid sårbarheter med hög eller kritisk nivå.
-- CodeQL analyserar JavaScript-koden vid pull requests, push till `main` och en gång i veckan.
 - Firebase finns som exakt version i `package.json` så att npm audit och Dependabot kan kontrollera paketet.
 - `scripts/check-firebase-version.mjs` stoppar releasen om Firebase-versionen i `package.json` inte matchar CDN-versionen i `firebase-client.mjs`.
 
@@ -176,15 +175,6 @@ firebase functions:secrets:set CLOUDINARY_API_KEY
 firebase functions:secrets:set CLOUDINARY_API_SECRET
 ```
 
-För deploy via GitHub Actions kan samma värden läggas in i `FIREBASE_CONFIG` secret som:
-
-- `cloudinaryCloudName`
-- `cloudinarySignEndpoint`
-- `cloudinaryUploadPreset`
-- `cloudinaryFolder` (valfritt)
-
-Alternativt som objekt under nyckeln `cloudinary`.
-
 ## Marknadsplats och Swish
 
 Längst ned i `admin.html` finns en länk till den skyddade sidan `loppis-admin.html`, där admin
@@ -211,53 +201,6 @@ window.MARKETPLACE_CONFIG = {
 
 Om numret lämnas tomt får kunden i stället information om att Swish-uppgifterna skickas
 manuellt till kontaktuppgiften i beställningen.
-
-## Publicera till GitHub Pages
-
-Engångsinställning:
-
-1. Skapa ett GitHub-repo och pusha koden till branch `main`.
-2. Skapa repository secret `FIREBASE_CONFIG` under Settings → Secrets and variables → Actions. Värdet ska vara Firebase-konfigurationen som ett JSON-objekt.
-3. Öppna Settings → Pages och välj GitHub Actions som source.
-
-Release med två klick:
-
-1. Öppna Actions → Publicera till GitHub Pages.
-2. Klicka Run workflow → Run workflow.
-
-Workflown kör E2E-tester, beroendekontroll och CodeQL vid pull requests och push till `main`. GitHub Pages publiceras endast när alla releasegrindar har passerat.
-
-### Snabb preflight innan release
-
-```bash
-cd "/Users/madeleine/Documents/GitHub/NailsbyG "
-.github/skills/github-pages-release/scripts/preflight.sh
-```
-
-## Agenter och skills för release
-
-Följande är nu skapade för att hjälpa er jobba strukturerat:
-
-- Agent: `.github/agents/gh-pages-release.agent.md`
-- Agent: `.github/agents/mobile-usability-check.agent.md`
-- Agent: `.github/agents/product-builder.agent.md`
-- Skill: `.github/skills/github-pages-release/SKILL.md`
-- Skill: `.github/skills/feature-change/SKILL.md`
-- Skill: `.github/skills/mobile-ui-refinement/SKILL.md`
-- Prompt: `.github/prompts/release-pages.prompt.md`
-- Prompt: `.github/prompts/kid-mobile-review.prompt.md`
-- Prompt: `.github/prompts/build-feature-ui.prompt.md`
-- Kravfil: `.github/instructions/release-requirements.instructions.md`
-
-Skriv `/` i chatten i VS Code för att köra promptarna.
-
-### Rekommenderat arbetsflode for andringar
-
-1. Starta prompten `Build Feature + UI`.
-2. Beskriv andringen i enkel text.
-3. Lat `Product Builder` gora implementation + mobilanpassning.
-4. Kor `Kid Mobile Review` prompten for snabb UX-kontroll.
-5. Kor `Release To GitHub Pages` innan deploy.
 
 ## Teknisk översikt
 

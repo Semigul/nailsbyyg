@@ -23,7 +23,7 @@ Denna Worker skickar Web Push-notiser till Nailsbyy.g-adminappen utan Firebase B
 6. Kopiera Worker-adressen som skrivs ut, till exempel
    `https://nailsbyyg-order-notifications.<subdomain>.workers.dev`.
 7. Uppdatera den publika adressen i `push-config.js` om Workerns adress andras.
-8. Publicera `firestore.rules` och kor sedan GitHub Pages-workflowen.
+8. Publicera `firestore.rules` och publicera sedan webbplatsen.
 
 Nycklarna far inte laggas i Git eller i `firebase.config.js`. Den publika nyckeln
 hamtas automatiskt fran Workern nar Greta aktiverar notiser.

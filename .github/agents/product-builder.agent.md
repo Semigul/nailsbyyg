@@ -2,7 +2,7 @@
 name: Product Builder
 description: "Use when changing functionality and UI in this app. Keywords: ny feature, andra funktion, UI andring, improve flow, refactor frontend."
 tools: [read, search, edit, execute, todo, agent]
-agents: [Mobile Usability Check, GH Pages Release]
+agents: [Mobile Usability Check]
 user-invocable: true
 argument-hint: "Describe the feature or UI change you want to make."
 ---

@@ -12,15 +12,3 @@ updates:
       npm-dependencies:
         patterns:
           - "*"
-
-  - package-ecosystem: github-actions
-    directory: /
-    schedule:
-      interval: weekly
-      day: monday
-      time: "07:15"
-      timezone: Europe/Stockholm
-    groups:
-      github-actions:
-        patterns:
-          - "*"
