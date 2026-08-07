@@ -1,5 +1,6 @@
 import { getFirebaseServices } from "./firebase-client.mjs";
 import { formatWeightLimit, getPostNordLetterRate } from "./postnord-rates.mjs";
+import { createAdminOverviewPrototype } from "./admin-overview-prototype.js";
 
 const STORAGE_KEY = "orderkompis.orders.v1";
 const VIEW_KEY = "orderkompis.view.v1";
@@ -80,6 +81,7 @@ let touchDrag;
 let currentSharedOrderId = "";
 let currentAdminUser;
 let notificationBusy = false;
+const overviewPrototype = createAdminOverviewPrototype({ onNewOrder: onNewOrderShortcut });
 
 init();
 
@@ -228,6 +230,7 @@ function showAdmin(isVisible) {
   ui.adminContent.forEach((element) => {
     element.hidden = !isVisible;
   });
+  overviewPrototype.setVisible(isVisible);
 
   if (!isVisible) {
     currentAdminUser = undefined;
@@ -903,6 +906,7 @@ function render() {
   renderOrders();
   renderArchive();
   renderSummary();
+  overviewPrototype.render(state.orders);
 }
 
 function renderOrders() {
