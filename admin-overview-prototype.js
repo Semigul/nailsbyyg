@@ -2,7 +2,7 @@ const STATUS_FLOW = ["Ny", "Pågår", "Klar", "Levererad"];
 const VARIANTS = {
   A: "Fokuslista",
   B: "Handlingskö",
-  C: "En status i taget"
+  C: "Responsiv kanban"
 };
 
 export function createAdminOverviewPrototype({ onNewOrder }) {
@@ -22,6 +22,7 @@ export function createAdminOverviewPrototype({ onNewOrder }) {
   let isVisible = false;
   let listFilter = "Alla";
   let focusedStatus = "Ny";
+  let resizeFrame;
 
   root.id = "adminOverviewPrototype";
   root.className = "admin-overview-prototype";
@@ -100,6 +101,11 @@ export function createAdminOverviewPrototype({ onNewOrder }) {
     }
 
     cycleVariant(event.key === "ArrowLeft" ? -1 : 1);
+  });
+
+  window.addEventListener("resize", () => {
+    window.cancelAnimationFrame(resizeFrame);
+    resizeFrame = window.requestAnimationFrame(() => render());
   });
 
   function render(nextOrders = orders) {
@@ -265,7 +271,6 @@ function renderVariantB(overview) {
 }
 
 function renderVariantC(overview, viewState) {
-  const statusOrders = overview.byStatus[viewState.focusedStatus];
   const statusIndex = STATUS_FLOW.indexOf(viewState.focusedStatus);
 
   return `
@@ -274,7 +279,7 @@ function renderVariantC(overview, viewState) {
       <header class="variant-c-header">
         <div>
           <p class="prototype-kicker">Orderhantering</p>
-          <h1>Följ flödet</h1>
+          <h1>Kanbanflöde</h1>
         </div>
         <button type="button" class="variant-c-add" data-prototype-new-order aria-label="Ny beställning">＋</button>
       </header>
@@ -300,12 +305,31 @@ function renderVariantC(overview, viewState) {
             <p>Steg ${statusIndex + 1} av 4</p>
             <h2>${viewState.focusedStatus}</h2>
           </div>
-          <span>${statusOrders.length} beställningar</span>
+          <span>${overview.byStatus[viewState.focusedStatus].length} beställningar</span>
         </div>
-        <div class="variant-c-cards">
-          ${statusOrders.length > 0
-            ? statusOrders.map((order) => renderFocusCard(order)).join("")
-            : renderEmptyState("Inga beställningar i det här steget.")}
+        <div class="variant-c-board" aria-label="Beställningar som kanban">
+          ${STATUS_FLOW.map((status) => {
+            const statusOrders = overview.byStatus[status];
+            const isFocused = viewState.focusedStatus === status;
+
+            return `
+              <section
+                class="variant-c-column ${isFocused ? "is-active" : ""}"
+                data-kanban-status="${status}"
+                aria-label="${status}, ${statusOrders.length} beställningar"
+              >
+                <header class="variant-c-column-header">
+                  <h2>${status}</h2>
+                  <span>${statusOrders.length}</span>
+                </header>
+                <div class="variant-c-cards">
+                  ${statusOrders.length > 0
+                    ? statusOrders.map((order) => renderFocusCard(order)).join("")
+                    : renderEmptyState("Inga beställningar i det här steget.")}
+                </div>
+              </section>
+            `;
+          }).join("")}
         </div>
       </section>
 
@@ -419,6 +443,10 @@ function renderState(overview, variant, variantState) {
   const relevantState = {
     variant,
     ...variantState,
+    viewport: {
+      width: window.innerWidth,
+      layout: window.innerWidth >= 1024 ? "desktop" : (window.innerWidth >= 700 ? "tablet" : "mobile")
+    },
     counts: overview.counts,
     archiveCount: overview.archive.length,
     activeOrders: overview.active.map(({ id, customer, product, status, dueDate }) => ({
