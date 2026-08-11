@@ -126,6 +126,36 @@ test("orderflöde, arkiv och mobilnotiser ligger kompakt i rätt ordning", async
   expect(notificationBox?.height).toBeLessThan(110);
 });
 
+test("kanban A är mobile first och behåller sekundära funktioner", async ({ page }) => {
+  const board = page.locator("#kanbanBoard");
+  const adminTools = page.locator(".admin-tools-footer");
+
+  await expect(board.locator(".kanban-column")).toHaveCount(4);
+  await expect(page.locator("#boardStatusSummary")).toBeVisible();
+  await expect(page.locator(".prototype-switcher")).toHaveCount(0);
+
+  const boardRows = async () => board.locator(".kanban-column").evaluateAll((columns) => (
+    [...new Set(columns.map((column) => Math.round(column.getBoundingClientRect().top)))]
+  ));
+  const mobileMetrics = await board.evaluate((element) => ({
+    clientWidth: element.clientWidth,
+    scrollWidth: element.scrollWidth
+  }));
+
+  expect(mobileMetrics.scrollWidth).toBeGreaterThan(mobileMetrics.clientWidth);
+  expect(await boardRows()).toHaveLength(1);
+
+  await page.setViewportSize({ width: 768, height: 1024 });
+  expect(await boardRows()).toHaveLength(2);
+
+  await page.setViewportSize({ width: 1280, height: 900 });
+  expect(await boardRows()).toHaveLength(1);
+
+  await expect(adminTools.getByLabel("Visa Loppishörnan för kunder")).toBeVisible();
+  await expect(adminTools.getByRole("link", { name: /Hantera begagnade saker/ })).toBeVisible();
+  await expect(adminTools.locator("#notificationCard")).toBeVisible();
+});
+
 test("orderstatus kan flyttas med en touchvänlig kontroll på iPhone-storlek", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 3000 });
   await page.getByLabel("Kundens namn").fill("Mobil Test");
