@@ -637,6 +637,12 @@ textarea {
   margin-bottom: 0;
 }
 
+.orders-intro {
+  margin: 0.3rem 0 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
 .view-toggle {
   display: inline-flex;
   flex: 0 0 auto;
@@ -666,7 +672,67 @@ textarea {
 }
 
 .mobile-new-order {
-  display: none;
+  display: inline-flex;
+  width: auto;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55rem 0.85rem;
+  border: 1px solid transparent;
+  border-radius: 0.8rem;
+  background: var(--pink);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(217, 64, 117, 0.2);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.board-status-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.4rem;
+  margin-bottom: 0.85rem;
+}
+
+.board-status-summary article {
+  --status-accent: var(--pink);
+  --status-background: #fff0f5;
+  display: grid;
+  min-width: 0;
+  justify-items: center;
+  padding: 0.55rem 0.15rem;
+  border-top: 3px solid var(--status-accent);
+  border-radius: 0.65rem;
+  background: var(--status-background);
+}
+
+.board-status-summary article[data-summary-status="Pågår"] {
+  --status-accent: #d99a36;
+  --status-background: #fff7e6;
+}
+
+.board-status-summary article[data-summary-status="Klar"] {
+  --status-accent: #55996a;
+  --status-background: #edf7f1;
+}
+
+.board-status-summary article[data-summary-status="Levererad"] {
+  --status-accent: #7468aa;
+  --status-background: #f0eef9;
+}
+
+.board-status-summary strong {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.board-status-summary span {
+  max-width: 100%;
+  margin-top: 0.2rem;
+  overflow: hidden;
+  font-size: 0.59rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
 }
 
 .orders-list {
@@ -676,20 +742,22 @@ textarea {
 
 .kanban-board {
   display: grid;
-  grid-template-columns: repeat(4, minmax(14rem, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.75rem;
-  overflow-x: auto;
   padding: 0.15rem 0.1rem 0.6rem;
-  scroll-snap-type: x proximity;
   scrollbar-color: var(--pink-soft) transparent;
 }
 
 .kanban-column {
+  --kanban-accent: var(--pink);
+  --kanban-background: #fff0f5;
+  --kanban-ring: rgba(248, 108, 155, 0.1);
   min-height: 17rem;
   padding: 0.65rem;
   border: 1px solid var(--line);
+  border-top: 4px solid var(--kanban-accent);
   border-radius: 1.1rem;
-  background: #fffafb;
+  background: var(--kanban-background);
   scroll-snap-align: start;
   transition:
     border-color 160ms ease,
@@ -697,12 +765,21 @@ textarea {
 }
 
 .kanban-column[data-status="Pågår"] {
-  background: #fffaf1;
+  --kanban-accent: #d99a36;
+  --kanban-background: #fff7e6;
+  --kanban-ring: rgba(217, 154, 54, 0.12);
 }
 
-.kanban-column[data-status="Klar"],
+.kanban-column[data-status="Klar"] {
+  --kanban-accent: #55996a;
+  --kanban-background: #edf7f1;
+  --kanban-ring: rgba(85, 153, 106, 0.12);
+}
+
 .kanban-column[data-status="Levererad"] {
-  background: #f7fcf8;
+  --kanban-accent: #7468aa;
+  --kanban-background: #f0eef9;
+  --kanban-ring: rgba(116, 104, 170, 0.12);
 }
 
 .kanban-column.is-drop-target {
@@ -731,20 +808,9 @@ textarea {
   width: 0.55rem;
   height: 0.55rem;
   border-radius: 50%;
-  background: var(--pink);
-  box-shadow: 0 0 0 4px rgba(248, 108, 155, 0.1);
+  background: var(--kanban-accent);
+  box-shadow: 0 0 0 4px var(--kanban-ring);
   content: "";
-}
-
-.kanban-column[data-status="Pågår"] .kanban-column-title::before {
-  background: #d99a36;
-  box-shadow: 0 0 0 4px rgba(217, 154, 54, 0.12);
-}
-
-.kanban-column[data-status="Klar"] .kanban-column-title::before,
-.kanban-column[data-status="Levererad"] .kanban-column-title::before {
-  background: #55996a;
-  box-shadow: 0 0 0 4px rgba(85, 153, 106, 0.12);
 }
 
 .kanban-count {
@@ -2326,6 +2392,11 @@ textarea {
     grid-column: 1 / -1;
   }
 
+  .kanban-board {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
+  }
+
   .board-view-active .form-card,
   .board-view-active .orders-card {
     grid-column: 1 / -1;
@@ -2449,7 +2520,8 @@ textarea {
   }
 
   .mobile-new-order {
-    display: block;
+    display: flex;
+    width: 100%;
     min-height: 46px;
     padding: 0.65rem 0.9rem;
     border: 1px solid transparent;
@@ -2461,18 +2533,21 @@ textarea {
   }
 
   .kanban-board {
-    grid-template-columns: minmax(0, 1fr);
+    display: flex;
     gap: 0.65rem;
-    overflow-x: visible;
-    padding: 0;
-    scroll-snap-type: none;
+    margin: 0 -0.9rem;
+    overflow-x: auto;
+    padding: 0.1rem 0.9rem 0.7rem;
+    scroll-padding-left: 0.9rem;
+    scroll-snap-type: x mandatory;
   }
 
   .kanban-column {
-    min-width: 0;
-    min-height: 0;
+    flex: 0 0 min(82vw, 19rem);
+    min-width: min(82vw, 19rem);
+    min-height: 15rem;
     padding: 0.55rem;
-    scroll-snap-align: none;
+    scroll-snap-align: start;
   }
 
   .kanban-list {
@@ -2480,7 +2555,7 @@ textarea {
   }
 
   .kanban-empty {
-    min-height: 4rem;
+    min-height: 6rem;
   }
 
   input,
@@ -2553,6 +2628,12 @@ textarea {
   .two-col,
   .actions {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 1024px) {
+  .kanban-board {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
