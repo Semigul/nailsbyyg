@@ -90,15 +90,26 @@
       <section class="card orders-card admin-content" hidden>
         <div class="orders-heading">
           <div>
-            <p class="section-kicker">Orderflöde</p>
-            <h2>Dina ordrar</h2>
+            <p class="section-kicker">Klassisk kanban</p>
+            <h2>Beställningar</h2>
+            <p class="orders-intro">Svep mellan statuskolumnerna på mobilen.</p>
           </div>
           <div class="view-toggle" role="group" aria-label="Välj ordervy">
-            <button type="button" class="view-button active" data-view="board" aria-pressed="true">Board</button>
+            <button type="button" class="view-button active" data-view="board" aria-pressed="true">Kanban</button>
             <button type="button" class="view-button" data-view="list" aria-pressed="false">Lista</button>
           </div>
-          <button type="button" class="mobile-new-order" id="newOrderShortcut">+ Ny order</button>
+          <button type="button" class="mobile-new-order" id="newOrderShortcut">+ Ny beställning</button>
         </div>
+        <section
+          class="board-status-summary"
+          id="boardStatusSummary"
+          aria-label="Statusöversikt för beställningar"
+        >
+          <article data-summary-status="Ny"><strong id="newCount">0</strong><span>Ny</span></article>
+          <article data-summary-status="Pågår"><strong id="progressCount">0</strong><span>Pågår</span></article>
+          <article data-summary-status="Klar"><strong id="readyCount">0</strong><span>Klar</span></article>
+          <article data-summary-status="Levererad"><strong id="deliveredCount">0</strong><span>Levererad</span></article>
+        </section>
         <div id="kanbanBoard" class="kanban-board" aria-label="Orderflöde som Kanban-board"></div>
         <div id="ordersList" class="orders-list" hidden></div>
 
