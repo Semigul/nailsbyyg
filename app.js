@@ -56,11 +56,16 @@ const ui = {
   archivePanel: document.getElementById("archivePanel"),
   archiveOrders: document.getElementById("archiveOrders"),
   archiveCount: document.getElementById("archiveCount"),
+  boardStatusSummary: document.getElementById("boardStatusSummary"),
   viewButtons: document.querySelectorAll("[data-view]"),
   statusChips: document.getElementById("statusChips"),
   totalCount: document.getElementById("totalCount"),
   activeCount: document.getElementById("activeCount"),
   doneCount: document.getElementById("doneCount"),
+  newCount: document.getElementById("newCount"),
+  progressCount: document.getElementById("progressCount"),
+  readyCount: document.getElementById("readyCount"),
+  deliveredCount: document.getElementById("deliveredCount"),
   orderTemplate: document.getElementById("orderTemplate"),
   customerSharePanel: document.getElementById("customerSharePanel"),
   customerShareDescription: document.getElementById("customerShareDescription"),
@@ -912,6 +917,7 @@ function renderOrders() {
   ui.kanbanBoard.hidden = !isBoard;
   ui.ordersList.hidden = isBoard;
   ui.filterCard.hidden = isBoard;
+  ui.boardStatusSummary.hidden = !isBoard;
 
   ui.viewButtons.forEach((button) => {
     const isActive = button.dataset.view === state.currentView;
@@ -963,13 +969,13 @@ function renderKanbanBoard() {
 
     title.textContent = statusName;
     count.textContent = String(orders.length);
-    count.setAttribute("aria-label", `${orders.length} ordrar`);
+    count.setAttribute("aria-label", `${orders.length} beställningar`);
     header.append(title, count);
 
     if (orders.length === 0) {
       const empty = document.createElement("div");
       empty.className = "kanban-empty";
-      empty.textContent = "Inga ordrar i detta steg";
+      empty.textContent = "Inga beställningar i detta steg";
       list.append(empty);
     } else {
       orders.forEach((order) => list.append(createOrderCard(order, true)));
@@ -1280,6 +1286,11 @@ function onTouchDragMove(event) {
   }
 
   event.preventDefault();
+  const column = findKanbanColumnAtPointer(event);
+  clearColumnDropTargets();
+  touchDrag.nextStatusName = column?.dataset.status || null;
+  column?.classList.add("is-drop-target");
+
   const edgeDistance = 76;
 
   if (event.clientY < edgeDistance) {
@@ -1288,11 +1299,29 @@ function onTouchDragMove(event) {
     window.scrollBy(0, 18);
   }
 
+  const boardBox = ui.kanbanBoard.getBoundingClientRect();
+
+  if (event.clientX < boardBox.left + edgeDistance) {
+    ui.kanbanBoard.scrollBy({ left: -18, behavior: "auto" });
+  } else if (event.clientX > boardBox.right - edgeDistance) {
+    ui.kanbanBoard.scrollBy({ left: 18, behavior: "auto" });
+  }
+}
+
+function findKanbanColumnAtPointer(event) {
   const elementAtPointer = document.elementFromPoint(event.clientX, event.clientY);
-  const column = elementAtPointer?.closest(".kanban-column");
-  clearColumnDropTargets();
-  touchDrag.nextStatusName = column?.dataset.status || null;
-  column?.classList.add("is-drop-target");
+  const columnAtPointer = elementAtPointer?.closest(".kanban-column");
+  const columns = [...ui.kanbanBoard.querySelectorAll(".kanban-column")];
+  const nearestColumn = columns.reduce((nearest, candidate) => {
+    const box = candidate.getBoundingClientRect();
+    const distance = Math.abs(event.clientX - (box.left + (box.width / 2)));
+
+    return !nearest || distance < nearest.distance
+      ? { element: candidate, distance }
+      : nearest;
+  }, null);
+
+  return columnAtPointer || nearestColumn?.element || null;
 }
 
 async function onTouchDragEnd(event) {
@@ -1301,7 +1330,10 @@ async function onTouchDragEnd(event) {
   }
 
   event.preventDefault();
-  const { orderId, nextStatusName, handle, pointerId } = touchDrag;
+  const { orderId, handle, pointerId } = touchDrag;
+  const nextStatusName = touchDrag.nextStatusName
+    || findKanbanColumnAtPointer(event)?.dataset.status
+    || null;
 
   if (handle.hasPointerCapture?.(pointerId)) {
     handle.releasePointerCapture(pointerId);
@@ -1360,6 +1392,10 @@ function renderSummary() {
   ui.totalCount.textContent = String(total);
   ui.activeCount.textContent = String(active);
   ui.doneCount.textContent = String(done);
+  ui.newCount.textContent = String(orders.filter((order) => order.status === "Ny").length);
+  ui.progressCount.textContent = String(orders.filter((order) => order.status === "Pågår").length);
+  ui.readyCount.textContent = String(orders.filter((order) => order.status === "Klar").length);
+  ui.deliveredCount.textContent = String(orders.filter((order) => order.status === "Levererad").length);
 }
 
 function updateShippingEstimate() {
